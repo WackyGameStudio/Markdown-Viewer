@@ -37,11 +37,28 @@ describe('resolveLocalImagePath', () => {
     expect(resolveLocalImagePath('C:\\assets\\a.jpg', activeFile)).toBe('C:\\assets\\a.jpg');
   });
 
+  it('keeps UNC paths absolute', () => {
+    expect(resolveLocalImagePath('\\\\server\\share\\img.png', activeFile)).toBe('\\\\server\\share\\img.png');
+  });
+
   it('converts file URLs to Windows paths', () => {
     expect(resolveLocalImagePath('file:///D:/docs/image%201.png', activeFile)).toBe('D:\\docs\\image 1.png');
   });
 
+  it('converts four-slash file URLs to UNC paths', () => {
+    expect(resolveLocalImagePath('file:////server/share/img.png', activeFile)).toBe('\\\\server\\share\\img.png');
+  });
+
+  it('resolves paths against active file URLs', () => {
+    expect(resolveLocalImagePath('./img.png', 'file:///D:/docs/note.md')).toBe('D:\\docs\\img.png');
+  });
+
   it('throws on malformed file URLs', () => {
     expect(() => resolveLocalImagePath('file://', activeFile)).toThrow('Invalid file URL');
+    expect(() => resolveLocalImagePath('file:///D:/docs/%E0%A4%A.png', activeFile)).toThrow('Invalid file URL');
+  });
+
+  it('throws a source decode error for malformed normal paths', () => {
+    expect(() => resolveLocalImagePath('images/%E0%A4%A.png', activeFile)).toThrow('Invalid image source path');
   });
 });

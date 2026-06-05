@@ -23,14 +23,14 @@ export function resolveLocalImagePath(src: string, activeFile: string): string {
     return fileUrlToWindowsPath(trimmedSrc);
   }
 
-  const sourcePath = toWindowsPath(trimmedSrc);
+  const sourcePath = toWindowsPath(trimmedSrc, 'Invalid image source path');
   if (isDriveAbsolutePath(sourcePath) || isUncPath(sourcePath)) {
     return normalizeWindowsPath(sourcePath);
   }
 
   const activePath = trimmedActiveFile.toLowerCase().startsWith('file://')
     ? fileUrlToWindowsPath(trimmedActiveFile)
-    : toWindowsPath(trimmedActiveFile);
+    : toWindowsPath(trimmedActiveFile, 'Invalid active markdown file path');
   const activeDir = getDirectoryName(activePath);
 
   return normalizeWindowsPath(joinWindowsPath(activeDir, sourcePath));
@@ -48,7 +48,7 @@ function fileUrlToWindowsPath(src: string): string {
     throw new Error('Invalid file URL');
   }
 
-  const pathname = safeDecode(url.pathname);
+  const pathname = decodePath(url.pathname, 'Invalid file URL');
   if (url.host) {
     const hostPath = pathname.replace(/^\/+/, '');
     if (!hostPath) {
@@ -66,15 +66,15 @@ function fileUrlToWindowsPath(src: string): string {
   return normalizeWindowsPath(pathWithoutDriveSlash);
 }
 
-function toWindowsPath(path: string): string {
-  return safeDecode(path).replace(/\//g, '\\');
+function toWindowsPath(path: string, decodeErrorMessage: string): string {
+  return decodePath(path, decodeErrorMessage).replace(/\//g, '\\');
 }
 
-function safeDecode(value: string): string {
+function decodePath(value: string, errorMessage: string): string {
   try {
     return decodeURIComponent(value);
   } catch {
-    return value;
+    throw new Error(errorMessage);
   }
 }
 
