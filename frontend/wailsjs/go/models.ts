@@ -40,11 +40,11 @@ export namespace main {
 	    dataUrl: string;
 	    mimeType: string;
 	    size: number;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new ImageData(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.dataUrl = source["dataUrl"];
@@ -54,4 +54,3 @@ export namespace main {
 	}
 
 }
-
