@@ -1,6 +1,15 @@
-import { useEffect, useState, type ImgHTMLAttributes } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ImgHTMLAttributes,
+  type KeyboardEvent,
+} from 'react';
 import { GetImageData } from '../../wailsjs/go/main/App';
 import { isDirectImageSource, resolveLocalImagePath } from '../utils/imagePaths';
+
+export const MarkdownLinkContext = createContext(false);
 
 interface MarkdownImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   activeFile: string;
@@ -13,8 +22,10 @@ function getFallbackText(src?: string, alt?: string) {
   return alt || src || 'Image failed to load';
 }
 
-function getImageClassName(className?: string) {
-  return ['markdown-image', className].filter(Boolean).join(' ');
+function getImageClassName(className: string | undefined, isInsideLink: boolean) {
+  return ['markdown-image', !isInsideLink && 'markdown-image-interactive', className]
+    .filter(Boolean)
+    .join(' ');
 }
 
 function MarkdownImage({
@@ -24,8 +35,10 @@ function MarkdownImage({
   onOpenLightbox,
   className,
   onClick,
+  onKeyDown,
   ...props
 }: MarkdownImageProps) {
+  const isInsideLink = useContext(MarkdownLinkContext);
   const [imageSrc, setImageSrc] = useState(src || '');
   const [imageState, setImageState] = useState<ImageState>(
     isDirectImageSource(src) ? 'ready' : 'loading'
@@ -81,18 +94,37 @@ function MarkdownImage({
     );
   }
 
+  const openLightbox = () => {
+    if (!isInsideLink) {
+      onOpenLightbox(imageSrc, alt || '');
+    }
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLImageElement>) => {
+    onKeyDown?.(event);
+    if (event.defaultPrevented || isInsideLink) return;
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openLightbox();
+    }
+  };
+
   return (
     <img
       {...props}
       src={imageSrc}
       alt={alt}
-      className={getImageClassName(className)}
+      className={getImageClassName(className, isInsideLink)}
+      role={isInsideLink ? undefined : 'button'}
+      tabIndex={isInsideLink ? undefined : 0}
       onClick={(event) => {
         onClick?.(event);
-        if (!event.defaultPrevented) {
-          onOpenLightbox(imageSrc, alt || '');
+        if (!event.defaultPrevented && !isInsideLink) {
+          openLightbox();
         }
       }}
+      onKeyDown={handleKeyDown}
     />
   );
 }

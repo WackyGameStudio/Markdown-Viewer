@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { Folder, FolderOpen, FileText, Search, Bookmark, BookmarkCheck, ChevronDown, History, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import Mermaid from './components/Mermaid';
-import MarkdownImage from './components/MarkdownImage';
+import MarkdownImage, { MarkdownLinkContext } from './components/MarkdownImage';
 import ImageLightbox from './components/ImageLightbox';
 
 import { OpenDirectory, GetMarkdownTree, GetMarkdownContent } from "../wailsjs/go/main/App";
@@ -525,7 +525,7 @@ function App() {
                         </code>
                       );
                     },
-                   a: ({ node, ...props }) => {
+                   a: ({ node, children, ...props }) => {
                      const href = props.href || '';
                      const isExternal = href.startsWith('http');
                      
@@ -576,7 +576,11 @@ function App() {
                          onClick={handleClick}
                          target={isExternal ? "_blank" : undefined}
                          rel={isExternal ? "noopener noreferrer" : undefined}
-                       />
+                       >
+                         <MarkdownLinkContext.Provider value={true}>
+                           {children}
+                         </MarkdownLinkContext.Provider>
+                       </a>
                      );
                    }
                  }}

@@ -1,4 +1,4 @@
-const directSourcePrefixes = ['http://', 'https://', 'data:'];
+const directSourcePrefixes = ['http://', 'https://', 'data:', 'blob:', '//'];
 
 export function isDirectImageSource(src?: string): boolean {
   const trimmed = src?.trim();

@@ -8,6 +8,8 @@ describe('isDirectImageSource', () => {
     expect(isDirectImageSource('https://example.com/a.png')).toBe(true);
     expect(isDirectImageSource('http://example.com/a.png')).toBe(true);
     expect(isDirectImageSource('data:image/png;base64,abc')).toBe(true);
+    expect(isDirectImageSource('//cdn.example.com/a.png')).toBe(true);
+    expect(isDirectImageSource('blob:https://example.com/id')).toBe(true);
   });
 
   it('treats local paths as backend-loaded sources', () => {

@@ -516,7 +516,15 @@
   height: auto;
   border-radius: 8px;
   margin: 1.5em 0;
+}
+
+.markdown-image-interactive {
   cursor: zoom-in;
+}
+
+.markdown-image-interactive:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .markdown-image-state {
@@ -556,6 +564,29 @@
   border-radius: 8px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
   cursor: default;
+}
+
+.image-lightbox-close {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 6px;
+  background: rgba(22, 27, 34, 0.86);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.image-lightbox-close:hover,
+.image-lightbox-close:focus {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+  outline: none;
 }
 
 @media (max-width: 720px) {
