@@ -36,6 +36,22 @@ export namespace main {
 		    return a;
 		}
 	}
+	export class ImageData {
+	    dataUrl: string;
+	    mimeType: string;
+	    size: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ImageData(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dataUrl = source["dataUrl"];
+	        this.mimeType = source["mimeType"];
+	        this.size = source["size"];
+	    }
+	}
 
 }
 
