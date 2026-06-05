@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,6 +23,25 @@ type FileNode struct {
 	Path     string      `json:"path"`
 	IsDir    bool        `json:"isDir"`
 	Children []*FileNode `json:"children,omitempty"`
+}
+
+// ImageData contains an image encoded for frontend rendering.
+type ImageData struct {
+	DataURL  string `json:"dataUrl"`
+	MimeType string `json:"mimeType"`
+	Size     int64  `json:"size"`
+}
+
+const maxImageDataBytes int64 = 20 * 1024 * 1024
+
+var supportedImageMimeTypes = map[string]string{
+	".png":  "image/png",
+	".jpg":  "image/jpeg",
+	".jpeg": "image/jpeg",
+	".gif":  "image/gif",
+	".webp": "image/webp",
+	".svg":  "image/svg+xml",
+	".bmp":  "image/bmp",
 }
 
 // NewApp creates a new App application struct
@@ -119,6 +140,43 @@ func (a *App) GetMarkdownContent(filePath string) (string, error) {
 	}
 
 	return string(content), nil
+}
+
+// GetImageData reads a supported image file and returns a base64 data URL.
+func (a *App) GetImageData(imagePath string) (*ImageData, error) {
+	ext := strings.ToLower(filepath.Ext(imagePath))
+	mimeType, ok := supportedImageMimeTypes[ext]
+	if !ok {
+		return nil, fmt.Errorf("unsupported image type: %s", ext)
+	}
+
+	info, err := os.Stat(imagePath)
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("not a regular file")
+	}
+
+	file, err := os.Open(imagePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	content, err := io.ReadAll(io.LimitReader(file, maxImageDataBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(content)) > maxImageDataBytes {
+		return nil, fmt.Errorf("image file too large")
+	}
+
+	return &ImageData{
+		DataURL:  "data:" + mimeType + ";base64," + base64.StdEncoding.EncodeToString(content),
+		MimeType: mimeType,
+		Size:     int64(len(content)),
+	}, nil
 }
 
 // GetMarkdownTOC extracts headings for Table of Contents (can be done in frontend too, but basic extraction here if needed)
