@@ -510,6 +510,65 @@
   margin: 1.5em 0;
 }
 
+.markdown-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1.5em 0;
+  cursor: zoom-in;
+}
+
+.markdown-image-state {
+  display: inline-block;
+  margin: 1.5em 0;
+  padding: 6px 10px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.markdown-image-error {
+  color: #f85149;
+  background: rgba(248, 81, 73, 0.08);
+  border-color: rgba(248, 81, 73, 0.35);
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(0, 0, 0, 0.86);
+  cursor: zoom-out;
+}
+
+.image-lightbox-img {
+  max-width: calc(100vw - 64px);
+  max-height: calc(100vh - 64px);
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+  cursor: default;
+}
+
+@media (max-width: 720px) {
+  .image-lightbox {
+    padding: 16px;
+  }
+
+  .image-lightbox-img {
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 32px);
+  }
+}
+
 /* Table of Contents */
 .toc-title {
   font-size: 12px;

@@ -4,6 +4,8 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { Folder, FolderOpen, FileText, Search, Bookmark, BookmarkCheck, ChevronDown, History, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import Mermaid from './components/Mermaid';
+import MarkdownImage from './components/MarkdownImage';
+import ImageLightbox from './components/ImageLightbox';
 
 import { OpenDirectory, GetMarkdownTree, GetMarkdownContent } from "../wailsjs/go/main/App";
 import { main } from "../wailsjs/go/models";
@@ -47,6 +49,7 @@ function App() {
   const [showRecentDropdown, setShowRecentDropdown] = useState(false);
   const [showBookmarkDropdown, setShowBookmarkDropdown] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number>(850);
+  const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null);
   
   // Keep track of scroll container
   const contentPaneRef = useRef<HTMLDivElement>(null);
@@ -501,6 +504,13 @@ function App() {
                  remarkPlugins={[remarkGfm]}
                  rehypePlugins={[rehypeHighlight]}
                  components={{
+                    img: ({ node, ...props }) => (
+                      <MarkdownImage
+                        {...props}
+                        activeFile={activeFile}
+                        onOpenLightbox={(src, alt) => setLightboxImage({ src, alt })}
+                      />
+                    ),
                     code: ({ node, inline, className, children, ...props }: any) => {
                       const match = /language-(\w+)/.exec(className || '');
                       const lang = match ? match[1] : '';
@@ -605,6 +615,13 @@ function App() {
           </div>
         </div>
       </div>
+      {lightboxImage && (
+        <ImageLightbox
+          src={lightboxImage.src}
+          alt={lightboxImage.alt}
+          onClose={() => setLightboxImage(null)}
+        />
+      )}
     </div>
   )
 }
