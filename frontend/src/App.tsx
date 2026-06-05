@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { Folder, FolderOpen, FileText, Search, Bookmark, BookmarkCheck, ChevronDown, History, RefreshCw, SlidersHorizontal } from 'lucide-react';
@@ -503,6 +503,7 @@ function App() {
               <ReactMarkdown 
                  remarkPlugins={[remarkGfm]}
                  rehypePlugins={[rehypeHighlight]}
+                 urlTransform={(url, key) => key === 'src' ? url : defaultUrlTransform(url)}
                  components={{
                     img: ({ node, ...props }) => (
                       <MarkdownImage
