@@ -1,5 +1,6 @@
 package com.example.markdownviewer
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,8 +11,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.markdownviewer.theme.MarkdownViewerTheme
 import com.example.markdownviewer.ui.MarkdownViewerApp
+import com.example.markdownviewer.data.AppLanguagePreferences
 
 class MainActivity : ComponentActivity() {
+  override fun attachBaseContext(newBase: Context) {
+    super.attachBaseContext(AppLanguagePreferences.localizedContext(newBase))
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 

@@ -23,6 +23,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.doOnLayout
 import androidx.core.net.toUri
@@ -32,6 +33,7 @@ import com.example.markdownviewer.model.DocumentKind
 import com.example.markdownviewer.model.DocumentNode
 import com.example.markdownviewer.model.GestureTrigger
 import com.example.markdownviewer.data.ViewerSettings
+import com.example.markdownviewer.data.AppLanguagePreferences
 import org.json.JSONObject
 
 data class HeadingRequest(val index: Int, val nonce: Long)
@@ -59,6 +61,8 @@ fun DocumentWebView(
   onOpenExternal: (String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val context = LocalContext.current
+  val language = AppLanguagePreferences.current(context)
   val darkTheme = isSystemInDarkTheme()
   val webViewBackground = MaterialTheme.colorScheme.background.toArgb()
   val currentResolve by rememberUpdatedState(resolveResource)
@@ -84,6 +88,7 @@ fun DocumentWebView(
       settings,
       focusMode,
       viewerControlsVisible,
+      language,
     ) {
       val restoredState =
         initialViewState?.let { serialized -> runCatching { JSONObject(serialized) }.getOrNull() }
@@ -101,6 +106,7 @@ fun DocumentWebView(
           DocumentKind.Resource -> false
         }
       JSONObject()
+        .put("language", language.languageTag)
         .put("kind", document.kind.webName)
         .put("name", document.name)
         .put("activePath", document.relativePath)

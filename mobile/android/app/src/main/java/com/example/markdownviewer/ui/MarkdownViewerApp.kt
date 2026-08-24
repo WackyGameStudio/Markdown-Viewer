@@ -93,6 +93,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
@@ -101,6 +102,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.net.toUri
+import com.example.markdownviewer.R
+import com.example.markdownviewer.data.AppLanguagePreferences
 import com.example.markdownviewer.data.RandomAccessDocument
 import com.example.markdownviewer.data.SmbDocumentUri
 import com.example.markdownviewer.data.ViewerSettings
@@ -132,6 +135,11 @@ private enum class EdgePanel {
 fun MarkdownViewerApp(viewModel: MarkdownViewerViewModel = viewModel()) {
   val uiState by viewModel.state.collectAsStateWithLifecycle()
   val context = LocalContext.current
+  val appLanguage = AppLanguagePreferences.current(context)
+  val smbPreparingExternalMessage = stringResource(R.string.message_preparing_smb_external)
+  val prepareExternalErrorMessage = stringResource(R.string.error_prepare_external)
+  val noLinkAppMessage = stringResource(R.string.error_no_link_app)
+  val settingsSaveErrorMessage = stringResource(R.string.error_settings_save)
   val snackbarHostState = remember { SnackbarHostState() }
   var showRecent by rememberSaveable { mutableStateOf(false) }
   var showBookmarks by rememberSaveable { mutableStateOf(false) }
@@ -174,7 +182,7 @@ fun MarkdownViewerApp(viewModel: MarkdownViewerViewModel = viewModel()) {
     val compactDocumentOpen = layout == WindowLayout.Compact && uiState.activeDocument != null
     val openDocumentExternally: (DocumentNode) -> Unit = { document ->
       if (SmbDocumentUri.isSmb(document.uri)) {
-        Toast.makeText(context, "SMB 문서를 외부 앱용으로 준비하는 중입니다.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, smbPreparingExternalMessage, Toast.LENGTH_SHORT).show()
       }
       coroutineScope.launch {
         runCatching { viewModel.externalDocumentUri(document) }
@@ -189,7 +197,7 @@ fun MarkdownViewerApp(viewModel: MarkdownViewerViewModel = viewModel()) {
           .onFailure { failure ->
             Toast.makeText(
                 context,
-                failure.message ?: "외부 앱으로 전달할 문서를 준비하지 못했습니다.",
+                failure.message ?: prepareExternalErrorMessage,
                 Toast.LENGTH_LONG,
               )
               .show()
@@ -235,7 +243,7 @@ fun MarkdownViewerApp(viewModel: MarkdownViewerViewModel = viewModel()) {
                 if (compactDocumentOpen) {
                   uiState.activeDocument?.name.orEmpty()
                 } else {
-                  "Markdown Viewer"
+                  stringResource(R.string.app_name)
                 },
               maxLines = 1,
               overflow = TextOverflow.Ellipsis,
@@ -244,24 +252,36 @@ fun MarkdownViewerApp(viewModel: MarkdownViewerViewModel = viewModel()) {
           navigationIcon = {
             if (compactDocumentOpen) {
               IconButton(onClick = viewModel::closeCompactDocument) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "탐색기로 돌아가기")
+                Icon(
+                  Icons.AutoMirrored.Outlined.ArrowBack,
+                  contentDescription = stringResource(R.string.nav_back_to_explorer),
+                )
               }
             }
           },
           actions = {
             if (uiState.activeDocument?.kind == DocumentKind.Markdown && layout != WindowLayout.Large) {
               IconButton(onClick = { showTocSheet = true }) {
-                Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = "목차")
+                Icon(
+                  Icons.AutoMirrored.Outlined.MenuBook,
+                  contentDescription = stringResource(R.string.nav_toc),
+                )
               }
             }
             if (uiState.activeDocument?.kind == DocumentKind.Markdown) {
               IconButton(onClick = { showWidthDialog = true }) {
-                Icon(Icons.Outlined.Tune, contentDescription = "본문 너비")
+                Icon(
+                  Icons.Outlined.Tune,
+                  contentDescription = stringResource(R.string.nav_content_width),
+                )
               }
             }
             if (uiState.activeDocument != null) {
               IconButton(onClick = viewModel::toggleFocusMode) {
-                Icon(Icons.Outlined.CenterFocusStrong, contentDescription = "집중 모드")
+                Icon(
+                  Icons.Outlined.CenterFocusStrong,
+                  contentDescription = stringResource(R.string.nav_focus_mode),
+                )
               }
             }
             if (
@@ -270,15 +290,18 @@ fun MarkdownViewerApp(viewModel: MarkdownViewerViewModel = viewModel()) {
                 layout != WindowLayout.Compact
             ) {
               IconButton(onClick = { uiState.activeDocument?.let(openDocumentExternally) }) {
-                Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = "외부 앱으로 열기")
+                Icon(
+                  Icons.AutoMirrored.Outlined.OpenInNew,
+                  contentDescription = stringResource(R.string.nav_open_external),
+                )
               }
             }
             SavedFoldersMenu(
               expanded = showRecent,
               folders = uiState.recentFolders,
               icon = Icons.Outlined.History,
-              contentDescription = "최근 폴더",
-              emptyMessage = "최근 폴더가 없습니다.",
+              contentDescription = stringResource(R.string.nav_recent_folders),
+              emptyMessage = stringResource(R.string.nav_recent_folders_empty),
               onExpandedChange = {
                 showRecent = it
                 if (it) showBookmarks = false
@@ -292,8 +315,8 @@ fun MarkdownViewerApp(viewModel: MarkdownViewerViewModel = viewModel()) {
               expanded = showBookmarks,
               folders = uiState.bookmarks,
               icon = Icons.Outlined.Bookmarks,
-              contentDescription = "즐겨찾기",
-              emptyMessage = "즐겨찾기가 없습니다.",
+              contentDescription = stringResource(R.string.nav_bookmarks),
+              emptyMessage = stringResource(R.string.nav_bookmarks_empty),
               onExpandedChange = {
                 showBookmarks = it
                 if (it) showRecent = false
@@ -310,13 +333,19 @@ fun MarkdownViewerApp(viewModel: MarkdownViewerViewModel = viewModel()) {
                 openFolder.launch(initialUri)
               }
             ) {
-              Icon(Icons.Outlined.FolderOpen, contentDescription = "문서 폴더 열기")
+              Icon(
+                Icons.Outlined.FolderOpen,
+                contentDescription = stringResource(R.string.nav_open_document_folder),
+              )
             }
             IconButton(onClick = { showSmbConnections = true }) {
-              Icon(Icons.Outlined.Storage, contentDescription = "SMB 네트워크 폴더")
+              Icon(
+                Icons.Outlined.Storage,
+                contentDescription = stringResource(R.string.nav_smb_folder),
+              )
             }
             IconButton(onClick = { showSettings = true }) {
-              Icon(Icons.Outlined.Settings, contentDescription = "설정")
+              Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings_title))
             }
           },
         )
@@ -348,7 +377,7 @@ fun MarkdownViewerApp(viewModel: MarkdownViewerViewModel = viewModel()) {
               context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
             }
             .onFailure {
-              Toast.makeText(context, "링크를 열 앱을 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+              Toast.makeText(context, noLinkAppMessage, Toast.LENGTH_SHORT).show()
             }
         },
         onOpenDocumentExternal = openDocumentExternally,
@@ -392,7 +421,15 @@ fun MarkdownViewerApp(viewModel: MarkdownViewerViewModel = viewModel()) {
 
     if (showSettings) {
       ViewerSettingsDialog(
+        language = appLanguage,
         settings = uiState.settings,
+        onLanguageChanged = { language ->
+          if (AppLanguagePreferences.set(context, language)) {
+            context.findActivity()?.recreate()
+          } else {
+            Toast.makeText(context, settingsSaveErrorMessage, Toast.LENGTH_SHORT).show()
+          }
+        },
         onSettingChanged = viewModel::updateSetting,
         onGestureBindingChanged = viewModel::bindGesture,
         onResetGestureBindings = viewModel::resetGestureBindings,
@@ -666,14 +703,17 @@ private fun FocusControlsPanel(
         verticalAlignment = Alignment.CenterVertically,
       ) {
         Text(
-          document?.name ?: "문서 도구",
+          document?.name ?: stringResource(R.string.nav_document_tools),
           modifier = Modifier.weight(1f),
           maxLines = 1,
           overflow = TextOverflow.Ellipsis,
           style = MaterialTheme.typography.labelLarge,
         )
         IconButton(onClick = onDismiss) {
-          Icon(Icons.Outlined.Close, contentDescription = "문서 도구 닫기")
+          Icon(
+            Icons.Outlined.Close,
+            contentDescription = stringResource(R.string.nav_close_document_tools),
+          )
         }
       }
       HorizontalDivider()
@@ -683,13 +723,19 @@ private fun FocusControlsPanel(
         verticalAlignment = Alignment.CenterVertically,
       ) {
         IconButton(onClick = onGoBack, enabled = canGoBack) {
-          Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "이전 문서")
+          Icon(
+            Icons.AutoMirrored.Outlined.ArrowBack,
+            contentDescription = stringResource(R.string.nav_previous_document),
+          )
         }
         IconButton(onClick = onGoForward, enabled = canGoForward) {
-          Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "다음 문서")
+          Icon(
+            Icons.AutoMirrored.Outlined.ArrowForward,
+            contentDescription = stringResource(R.string.nav_next_document),
+          )
         }
         IconButton(onClick = onShowExplorer) {
-          Icon(Icons.Outlined.FolderOpen, contentDescription = "탐색기")
+          Icon(Icons.Outlined.FolderOpen, contentDescription = stringResource(R.string.nav_explorer))
         }
         IconButton(onClick = onShowDetails, enabled = document != null) {
           Icon(
@@ -698,22 +744,35 @@ private fun FocusControlsPanel(
             } else {
               Icons.Outlined.Info
             },
-            contentDescription = if (document?.kind == DocumentKind.Markdown) "목차" else "문서 정보",
+            contentDescription =
+              if (document?.kind == DocumentKind.Markdown) {
+                stringResource(R.string.nav_toc)
+              } else {
+                stringResource(R.string.nav_document_info)
+              },
           )
         }
         IconButton(onClick = onToggleFocus, enabled = document != null) {
           Icon(
             if (focusMode) Icons.Outlined.FullscreenExit else Icons.Outlined.CenterFocusStrong,
-            contentDescription = if (focusMode) "집중 모드 종료" else "집중 모드",
+            contentDescription =
+              if (focusMode) {
+                stringResource(R.string.nav_exit_focus_mode)
+              } else {
+                stringResource(R.string.nav_focus_mode)
+              },
           )
         }
         if (showExternalOpen && document != null) {
           IconButton(onClick = onOpenExternal) {
-            Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = "외부 앱으로 열기")
+            Icon(
+              Icons.AutoMirrored.Outlined.OpenInNew,
+              contentDescription = stringResource(R.string.nav_open_external),
+            )
           }
         }
         IconButton(onClick = onShowSettings) {
-          Icon(Icons.Outlined.Settings, contentDescription = "설정")
+          Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings_title))
         }
       }
     }
@@ -734,22 +793,28 @@ private fun DocumentInfoPanel(document: DocumentNode?, modifier: Modifier = Modi
         tint = MaterialTheme.colorScheme.primary,
       )
       Spacer(Modifier.width(10.dp))
-      Text("문서 정보", style = MaterialTheme.typography.labelLarge)
+      Text(stringResource(R.string.document_info_title), style = MaterialTheme.typography.labelLarge)
     }
     HorizontalDivider()
     if (document == null) {
       Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Text("선택한 문서가 없습니다.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+          stringResource(R.string.document_none_selected),
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
       }
     } else {
       Column(
         modifier = Modifier.fillMaxWidth().padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
       ) {
-        InfoRow("이름", document.name)
-        InfoRow("종류", document.kind.displayName)
-        InfoRow("크기", formatFileSize(document.sizeBytes))
-        InfoRow("경로", document.relativePath.ifBlank { document.name })
+        InfoRow(stringResource(R.string.document_info_name), document.name)
+        InfoRow(stringResource(R.string.document_info_type), documentKindDisplayName(document.kind))
+        InfoRow(stringResource(R.string.document_info_size), formatFileSize(document.sizeBytes))
+        InfoRow(
+          stringResource(R.string.document_info_path),
+          document.relativePath.ifBlank { document.name },
+        )
       }
     }
   }
@@ -763,19 +828,19 @@ private fun InfoRow(label: String, value: String) {
   }
 }
 
-private val DocumentKind.displayName: String
-  get() =
-    when (this) {
-      DocumentKind.Folder -> "폴더"
-      DocumentKind.Markdown -> "Markdown"
-      DocumentKind.Image -> "이미지"
-      DocumentKind.Pdf -> "PDF"
-      DocumentKind.Video -> "영상"
-      DocumentKind.Word -> "Word 문서"
-      DocumentKind.Presentation -> "PowerPoint 프레젠테이션"
-      DocumentKind.Html -> "HTML"
-      DocumentKind.Resource -> "HTML 리소스"
-    }
+@Composable
+private fun documentKindDisplayName(kind: DocumentKind): String =
+  when (kind) {
+    DocumentKind.Folder -> stringResource(R.string.document_kind_folder)
+    DocumentKind.Markdown -> stringResource(R.string.document_kind_markdown)
+    DocumentKind.Image -> stringResource(R.string.document_kind_image)
+    DocumentKind.Pdf -> stringResource(R.string.document_kind_pdf)
+    DocumentKind.Video -> stringResource(R.string.document_kind_video)
+    DocumentKind.Word -> stringResource(R.string.document_kind_word)
+    DocumentKind.Presentation -> stringResource(R.string.document_kind_presentation)
+    DocumentKind.Html -> stringResource(R.string.document_kind_html)
+    DocumentKind.Resource -> stringResource(R.string.document_kind_html_resource)
+  }
 
 private fun openExternalDocument(
   context: Context,
@@ -790,10 +855,10 @@ private fun openExternalDocument(
       addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
   runCatching {
-      context.startActivity(Intent.createChooser(target, "외부 앱으로 열기"))
+      context.startActivity(Intent.createChooser(target, context.getString(R.string.external_chooser_title)))
     }
     .onFailure {
-      Toast.makeText(context, "이 문서를 열 수 있는 외부 앱을 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+      Toast.makeText(context, context.getString(R.string.error_no_document_app), Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -960,7 +1025,7 @@ private fun ContentWidthDialog(
   var width by remember(currentWidth) { mutableFloatStateOf(currentWidth.toFloat()) }
   AlertDialog(
     onDismissRequest = onDismiss,
-    title = { Text("Markdown 본문 너비") },
+    title = { Text(stringResource(R.string.content_width_title)) },
     text = {
       androidx.compose.foundation.layout.Column {
         Text("${width.roundToInt()} dp", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -979,9 +1044,11 @@ private fun ContentWidthDialog(
           onDismiss()
         }
       ) {
-        Text("완료")
+        Text(stringResource(R.string.common_done))
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } },
+    dismissButton = {
+      TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
+    },
   )
 }

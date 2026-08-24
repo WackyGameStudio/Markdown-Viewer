@@ -17,9 +17,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.markdownviewer.R
 import com.example.markdownviewer.model.TocItem
 
 @Composable
@@ -32,7 +34,7 @@ fun TocPanel(
     Column(Modifier.fillMaxSize()) {
       Box(Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
         Text(
-          text = "이 페이지의 목차",
+          text = stringResource(R.string.toc_page_title),
           style = MaterialTheme.typography.labelLarge,
           fontWeight = FontWeight.SemiBold,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -41,7 +43,7 @@ fun TocPanel(
       HorizontalDivider()
       if (items.isEmpty()) {
         Box(Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
-          Text("제목이 없습니다.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+          Text(stringResource(R.string.toc_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
       } else {
         LazyColumn(Modifier.fillMaxSize().padding(vertical = 8.dp)) {

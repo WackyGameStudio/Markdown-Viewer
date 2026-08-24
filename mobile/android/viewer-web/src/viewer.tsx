@@ -31,6 +31,7 @@ import {
   isExternalReference,
 } from './references';
 import { usePinchZoom, useViewerGestures } from './gestures';
+import { viewerStrings, type ViewerLanguage, type ViewerStrings } from './i18n';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -48,24 +49,32 @@ const pdfOptions = {
 type PdfViewState = { page: number; zoom: number; rotation: number };
 const pdfViewStates = new Map<string, PdfViewState>();
 const MarkdownLinkContext = createContext(false);
+const ViewerLanguageContext = createContext<ViewerLanguage>('ko');
+
+function useViewerStrings(): ViewerStrings {
+  return viewerStrings[useContext(ViewerLanguageContext)];
+}
 
 export function Viewer() {
   const payload = useViewerPayload();
+  const strings = viewerStrings[payload.language];
   const rootRef = useRef<HTMLElement>(null);
   useViewerGestures(rootRef, payload.gestures);
   const style = { '--content-width': `${payload.contentWidth}px` } as CSSProperties;
 
   return (
-    <main className={payload.focusMode ? 'viewer-root focus-mode' : 'viewer-root'} ref={rootRef} style={style}>
-      {payload.kind === 'empty' && <Status message="문서를 선택하세요." />}
-      {payload.kind === 'markdown' && <MarkdownViewer key={payload.activePath} payload={payload} />}
-      {payload.kind === 'image' && <ImageViewer key={payload.activePath} payload={payload} />}
-      {payload.kind === 'pdf' && <PdfViewer key={payload.activePath} payload={payload} />}
-      {payload.kind === 'word' && <WordViewer key={payload.activePath} payload={payload} />}
-      {payload.kind === 'presentation' && (
-        <PresentationViewer key={payload.activePath} payload={payload} />
-      )}
-    </main>
+    <ViewerLanguageContext.Provider value={payload.language}>
+      <main className={payload.focusMode ? 'viewer-root focus-mode' : 'viewer-root'} ref={rootRef} style={style}>
+        {payload.kind === 'empty' && <Status message={strings.selectDocument} />}
+        {payload.kind === 'markdown' && <MarkdownViewer key={payload.activePath} payload={payload} />}
+        {payload.kind === 'image' && <ImageViewer key={payload.activePath} payload={payload} />}
+        {payload.kind === 'pdf' && <PdfViewer key={payload.activePath} payload={payload} />}
+        {payload.kind === 'word' && <WordViewer key={payload.activePath} payload={payload} />}
+        {payload.kind === 'presentation' && (
+          <PresentationViewer key={payload.activePath} payload={payload} />
+        )}
+      </main>
+    </ViewerLanguageContext.Provider>
   );
 }
 
@@ -193,6 +202,7 @@ function MarkdownImage({
   activePath: string;
   onOpen: (src: string, alt: string) => void;
 }) {
+  const strings = useViewerStrings();
   const insideLink = useContext(MarkdownLinkContext);
   const [failed, setFailed] = useState(false);
   const resolved = useMemo(
@@ -203,7 +213,7 @@ function MarkdownImage({
   useEffect(() => setFailed(false), [resolved]);
 
   if (!resolved || failed) {
-    return <span className="image-error">이미지를 불러올 수 없습니다: {alt || src}</span>;
+    return <span className="image-error">{strings.imageLoadError}: {alt || src}</span>;
   }
 
   return (
@@ -221,13 +231,14 @@ function MarkdownImage({
 }
 
 function MermaidDiagram({ chart, dark }: { chart: string; dark: boolean }) {
+  const strings = useViewerStrings();
   const [svg, setSvg] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     if (chart.length > 200_000) {
-      setError('다이어그램이 너무 큽니다.');
+      setError(strings.diagramTooLarge);
       return undefined;
     }
     mermaid.initialize({
@@ -250,14 +261,15 @@ function MermaidDiagram({ chart, dark }: { chart: string; dark: boolean }) {
     return () => {
       cancelled = true;
     };
-  }, [chart, dark]);
+  }, [chart, dark, strings.diagramTooLarge]);
 
-  if (error) return <pre className="mermaid-error">Mermaid 오류: {error}</pre>;
-  if (!svg) return <Status message="다이어그램을 그리는 중…" compact />;
+  if (error) return <pre className="mermaid-error">{strings.mermaidError}: {error}</pre>;
+  if (!svg) return <Status message={strings.renderingDiagram} compact />;
   return <div className="mermaid-diagram" dangerouslySetInnerHTML={{ __html: svg }} />;
 }
 
 function ImageViewer({ payload }: { payload: ViewerPayload }) {
+  const strings = useViewerStrings();
   const restored = imageStateFor(payload);
   const [zoom, setZoom] = useState(restored.zoom);
   const [rotation, setRotation] = useState(restored.rotation);
@@ -274,19 +286,19 @@ function ImageViewer({ payload }: { payload: ViewerPayload }) {
   }, [payload.activePath, rotation, zoom]);
 
   return (
-    <section className="binary-viewer" aria-label={`이미지: ${payload.name}`}>
+    <section className="binary-viewer" aria-label={`${strings.image}: ${payload.name}`}>
       {payload.viewerControlsVisible && (
         <ViewerToolbar title={payload.name}>
-          <ToolbarButton label="축소" onClick={() => setZoom((value) => clamp(value - 0.25, 0.25, 4))}>−</ToolbarButton>
+          <ToolbarButton label={strings.zoomOut} onClick={() => setZoom((value) => clamp(value - 0.25, 0.25, 4))}>−</ToolbarButton>
           <span className="zoom-label">{Math.round(zoom * 100)}%</span>
-          <ToolbarButton label="확대" onClick={() => setZoom((value) => clamp(value + 0.25, 0.25, 4))}>＋</ToolbarButton>
-          <ToolbarButton label="맞춤" onClick={() => setZoom(1)}>맞춤</ToolbarButton>
-          <ToolbarButton label="시계 방향 회전" onClick={() => setRotation((value) => (value + 90) % 360)}>↻</ToolbarButton>
+          <ToolbarButton label={strings.zoomIn} onClick={() => setZoom((value) => clamp(value + 0.25, 0.25, 4))}>＋</ToolbarButton>
+          <ToolbarButton label={strings.fit} onClick={() => setZoom(1)}>{strings.fit}</ToolbarButton>
+          <ToolbarButton label={strings.rotateClockwise} onClick={() => setRotation((value) => (value + 90) % 360)}>↻</ToolbarButton>
         </ViewerToolbar>
       )}
       <div className={payload.gestures.pinchZoom ? 'image-stage pinch-enabled' : 'image-stage'} ref={stageRef}>
         {failed ? (
-          <Status message="이미지를 불러올 수 없습니다." error />
+          <Status message={`${strings.imageLoadError}.`} error />
         ) : (
           <img
             className="standalone-image"
@@ -304,6 +316,7 @@ function ImageViewer({ payload }: { payload: ViewerPayload }) {
 }
 
 function PdfViewer({ payload }: { payload: ViewerPayload }) {
+  const strings = useViewerStrings();
   const restored = pdfStateFor(payload);
   const stageRef = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState(0);
@@ -372,10 +385,10 @@ function PdfViewer({ payload }: { payload: ViewerPayload }) {
     <section className="binary-viewer pdf-viewer" aria-label={`PDF: ${payload.name}`}>
       {payload.viewerControlsVisible && (
         <ViewerToolbar title={payload.name}>
-          <ToolbarButton label="이전 페이지" disabled={page <= 1} onClick={() => goToPage(page - 1)}>‹</ToolbarButton>
+          <ToolbarButton label={strings.previousPage} disabled={page <= 1} onClick={() => goToPage(page - 1)}>‹</ToolbarButton>
           <input
             className="page-input"
-            aria-label="페이지 번호"
+            aria-label={strings.pageNumber}
             inputMode="numeric"
             value={pageInput}
             onChange={(event) => setPageInput(event.target.value)}
@@ -385,24 +398,24 @@ function PdfViewer({ payload }: { payload: ViewerPayload }) {
             }}
           />
           <span className="page-total">/ {pages || '–'}</span>
-          <ToolbarButton label="다음 페이지" disabled={!pages || page >= pages} onClick={() => goToPage(page + 1)}>›</ToolbarButton>
+          <ToolbarButton label={strings.nextPage} disabled={!pages || page >= pages} onClick={() => goToPage(page + 1)}>›</ToolbarButton>
           <span className="toolbar-separator" />
-          <ToolbarButton label="축소" onClick={() => setZoom((value) => clamp(value - 0.1, 0.5, 2.5))}>−</ToolbarButton>
+          <ToolbarButton label={strings.zoomOut} onClick={() => setZoom((value) => clamp(value - 0.1, 0.5, 2.5))}>−</ToolbarButton>
           <span className="zoom-label">{Math.round(zoom * 100)}%</span>
-          <ToolbarButton label="확대" onClick={() => setZoom((value) => clamp(value + 0.1, 0.5, 2.5))}>＋</ToolbarButton>
-          <ToolbarButton label="너비 맞춤" onClick={() => setZoom(1)}>맞춤</ToolbarButton>
-          <ToolbarButton label="시계 방향 회전" onClick={() => setRotation((value) => (value + 90) % 360)}>↻</ToolbarButton>
+          <ToolbarButton label={strings.zoomIn} onClick={() => setZoom((value) => clamp(value + 0.1, 0.5, 2.5))}>＋</ToolbarButton>
+          <ToolbarButton label={strings.fitWidth} onClick={() => setZoom(1)}>{strings.fit}</ToolbarButton>
+          <ToolbarButton label={strings.rotateClockwise} onClick={() => setRotation((value) => (value + 90) % 360)}>↻</ToolbarButton>
         </ViewerToolbar>
       )}
       <div className={payload.gestures.pinchZoom ? 'pdf-stage pinch-enabled' : 'pdf-stage'} ref={stageRef}>
         {error ? (
-          <Status message={`PDF를 열 수 없습니다: ${error}`} error />
+          <Status message={`${strings.pdfOpenError}: ${error}`} error />
         ) : (
           <Document
             key={payload.resourceUrl}
             file={payload.resourceUrl}
             options={pdfOptions}
-            loading={<Status message="PDF를 분석하는 중…" />}
+            loading={<Status message={strings.analyzingPdf} />}
             onLoadSuccess={({ numPages }) => {
               setPages(numPages);
               goToPage(Math.min(page, numPages));
@@ -421,22 +434,22 @@ function PdfViewer({ payload }: { payload: ViewerPayload }) {
               rotate={rotation}
               renderTextLayer
               renderAnnotationLayer
-              loading={<Status message="페이지를 그리는 중…" compact />}
+              loading={<Status message={strings.renderingPage} compact />}
             />
           </Document>
         )}
         {passwordRequest && (
           <form className="password-dialog" onSubmit={submitPassword}>
-            <strong>암호가 필요한 PDF입니다</strong>
-            <span>{passwordRequest.reason === 2 ? '암호가 맞지 않습니다.' : 'PDF 암호를 입력하세요.'}</span>
+            <strong>{strings.passwordProtectedPdf}</strong>
+            <span>{passwordRequest.reason === 2 ? strings.incorrectPassword : strings.enterPdfPassword}</span>
             <input
               type="password"
               value={password}
               autoFocus
-              aria-label="PDF 암호"
+              aria-label={strings.pdfPassword}
               onChange={(event) => setPassword(event.target.value)}
             />
-            <button type="submit" disabled={!password}>열기</button>
+            <button type="submit" disabled={!password}>{strings.open}</button>
           </form>
         )}
       </div>
@@ -445,6 +458,7 @@ function PdfViewer({ payload }: { payload: ViewerPayload }) {
 }
 
 function WordViewer({ payload }: { payload: ViewerPayload }) {
+  const strings = useViewerStrings();
   const restored = wordStateFor(payload);
   const stageRef = useRef<HTMLDivElement>(null);
   const stylesRef = useRef<HTMLDivElement>(null);
@@ -475,7 +489,7 @@ function WordViewer({ payload }: { payload: ViewerPayload }) {
     body.replaceChildren();
 
     void Promise.all([
-      fetchOfficeBuffer(payload.resourceUrl, controller.signal),
+      fetchOfficeBuffer(payload.resourceUrl, controller.signal, strings),
       import('docx-preview'),
     ])
       .then(async ([buffer, docx]) => {
@@ -501,7 +515,7 @@ function WordViewer({ payload }: { payload: ViewerPayload }) {
       .catch((reason: unknown) => {
         if (disposed || controller.signal.aborted) return;
         setLoading(false);
-        setError(errorMessage(reason));
+        setError(errorMessage(reason, strings));
       });
 
     let saveTimer: number | undefined;
@@ -529,7 +543,7 @@ function WordViewer({ payload }: { payload: ViewerPayload }) {
       styles.replaceChildren();
       body.replaceChildren();
     };
-  }, [payload.activePath, payload.legacyOffice, payload.resourceUrl, restored.scrollTop]);
+  }, [payload.activePath, payload.legacyOffice, payload.resourceUrl, restored.scrollTop, strings]);
 
   useEffect(() => {
     saveViewState(payload.activePath, {
@@ -544,13 +558,13 @@ function WordViewer({ payload }: { payload: ViewerPayload }) {
   }
 
   return (
-    <section className="binary-viewer office-viewer" aria-label={`Word 문서: ${payload.name}`}>
+    <section className="binary-viewer office-viewer" aria-label={`${strings.wordDocument}: ${payload.name}`}>
       {payload.viewerControlsVisible && (
         <ViewerToolbar title={payload.name}>
-          <ToolbarButton label="축소" onClick={() => setZoom((value) => clamp(value - 0.1, 0.5, 2))}>−</ToolbarButton>
+          <ToolbarButton label={strings.zoomOut} onClick={() => setZoom((value) => clamp(value - 0.1, 0.5, 2))}>−</ToolbarButton>
           <span className="zoom-label">{Math.round(zoom * 100)}%</span>
-          <ToolbarButton label="확대" onClick={() => setZoom((value) => clamp(value + 0.1, 0.5, 2))}>＋</ToolbarButton>
-          <ToolbarButton label="원래 크기" onClick={() => setZoom(1)}>100%</ToolbarButton>
+          <ToolbarButton label={strings.zoomIn} onClick={() => setZoom((value) => clamp(value + 0.1, 0.5, 2))}>＋</ToolbarButton>
+          <ToolbarButton label={strings.originalSize} onClick={() => setZoom(1)}>100%</ToolbarButton>
         </ViewerToolbar>
       )}
       <div className={payload.gestures.pinchZoom ? 'office-stage pinch-enabled' : 'office-stage'} ref={stageRef}>
@@ -560,14 +574,15 @@ function WordViewer({ payload }: { payload: ViewerPayload }) {
           className="word-document"
           style={{ '--office-zoom': zoom } as CSSProperties}
         />
-        {loading && <div className="office-overlay"><Status message="Word 문서를 분석하는 중…" compact /></div>}
-        {error && <div className="office-overlay"><Status message={`Word 문서를 열 수 없습니다: ${error}`} error /></div>}
+        {loading && <div className="office-overlay"><Status message={strings.analyzingWord} compact /></div>}
+        {error && <div className="office-overlay"><Status message={`${strings.wordOpenError}: ${error}`} error /></div>}
       </div>
     </section>
   );
 }
 
 function PresentationViewer({ payload }: { payload: ViewerPayload }) {
+  const strings = useViewerStrings();
   const restored = presentationStateFor(payload);
   const stageRef = useRef<HTMLDivElement>(null);
   const slidesRef = useRef<HTMLDivElement>(null);
@@ -600,7 +615,7 @@ function PresentationViewer({ payload }: { payload: ViewerPayload }) {
     slides.replaceChildren();
 
     void Promise.all([
-      fetchOfficeBuffer(payload.resourceUrl, controller.signal),
+      fetchOfficeBuffer(payload.resourceUrl, controller.signal, strings),
       import('@aiden0z/pptx-renderer'),
     ])
       .then(async ([buffer, pptx]) => {
@@ -651,7 +666,7 @@ function PresentationViewer({ payload }: { payload: ViewerPayload }) {
       .catch((reason: unknown) => {
         if (disposed || controller.signal.aborted) return;
         setLoading(false);
-        setError(errorMessage(reason));
+        setError(errorMessage(reason, strings));
       });
 
     return () => {
@@ -662,7 +677,7 @@ function PresentationViewer({ payload }: { payload: ViewerPayload }) {
       viewerRef.current = null;
       slides.replaceChildren();
     };
-  }, [payload.activePath, payload.legacyOffice, payload.resourceUrl, restored.slide]);
+  }, [payload.activePath, payload.legacyOffice, payload.resourceUrl, restored.slide, strings]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -686,33 +701,34 @@ function PresentationViewer({ payload }: { payload: ViewerPayload }) {
   }
 
   return (
-    <section className="binary-viewer office-viewer" aria-label={`PowerPoint 문서: ${payload.name}`}>
+    <section className="binary-viewer office-viewer" aria-label={`${strings.powerpointDocument}: ${payload.name}`}>
       {payload.viewerControlsVisible && (
         <ViewerToolbar title={payload.name}>
-          <ToolbarButton label="이전 슬라이드" disabled={slide <= 1} onClick={() => goToSlide(slide - 1)}>‹</ToolbarButton>
+          <ToolbarButton label={strings.previousSlide} disabled={slide <= 1} onClick={() => goToSlide(slide - 1)}>‹</ToolbarButton>
           <span className="page-total">{slide} / {slideCount || '–'}</span>
-          <ToolbarButton label="다음 슬라이드" disabled={!slideCount || slide >= slideCount} onClick={() => goToSlide(slide + 1)}>›</ToolbarButton>
+          <ToolbarButton label={strings.nextSlide} disabled={!slideCount || slide >= slideCount} onClick={() => goToSlide(slide + 1)}>›</ToolbarButton>
           <span className="toolbar-separator" />
-          <ToolbarButton label="축소" onClick={() => setZoom((value) => clamp(value - 0.1, 0.5, 2))}>−</ToolbarButton>
+          <ToolbarButton label={strings.zoomOut} onClick={() => setZoom((value) => clamp(value - 0.1, 0.5, 2))}>−</ToolbarButton>
           <span className="zoom-label">{Math.round(zoom * 100)}%</span>
-          <ToolbarButton label="확대" onClick={() => setZoom((value) => clamp(value + 0.1, 0.5, 2))}>＋</ToolbarButton>
-          <ToolbarButton label="너비 맞춤" onClick={() => setZoom(1)}>맞춤</ToolbarButton>
+          <ToolbarButton label={strings.zoomIn} onClick={() => setZoom((value) => clamp(value + 0.1, 0.5, 2))}>＋</ToolbarButton>
+          <ToolbarButton label={strings.fitWidth} onClick={() => setZoom(1)}>{strings.fit}</ToolbarButton>
         </ViewerToolbar>
       )}
       <div className={payload.gestures.pinchZoom ? 'office-stage presentation-stage pinch-enabled' : 'office-stage presentation-stage'} ref={stageRef}>
         <div ref={slidesRef} className="presentation-document" />
-        {loading && <div className="office-overlay"><Status message="PowerPoint 문서를 분석하는 중…" compact /></div>}
-        {error && <div className="office-overlay"><Status message={`PowerPoint 문서를 열 수 없습니다: ${error}`} error /></div>}
+        {loading && <div className="office-overlay"><Status message={strings.analyzingPowerpoint} compact /></div>}
+        {error && <div className="office-overlay"><Status message={`${strings.powerpointOpenError}: ${error}`} error /></div>}
       </div>
     </section>
   );
 }
 
 function LegacyOfficeStatus({ format }: { format: 'DOC' | 'PPT' }) {
+  const strings = useViewerStrings();
   return (
     <div className="legacy-office-status">
       <Status
-        message={`구형 .${format.toLowerCase()} 형식은 앱 내부 미리보기를 지원하지 않습니다. 우측 상단의 외부 앱으로 열기 버튼을 사용하세요.`}
+        message={strings.legacyOffice(format)}
       />
     </div>
   );
@@ -746,6 +762,7 @@ function ToolbarButton({
 }
 
 function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  const strings = useViewerStrings();
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -755,8 +772,8 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
   }, [onClose]);
 
   return (
-    <div className="lightbox" role="dialog" aria-modal="true" aria-label={alt || '이미지 크게 보기'} onClick={onClose}>
-      <button type="button" className="lightbox-close" aria-label="닫기" onClick={onClose}>×</button>
+    <div className="lightbox" role="dialog" aria-modal="true" aria-label={alt || strings.enlargedImage} onClick={onClose}>
+      <button type="button" className="lightbox-close" aria-label={strings.close} onClick={onClose}>×</button>
       <img src={src} alt={alt} onClick={(event) => event.stopPropagation()} />
     </div>
   );
@@ -806,16 +823,20 @@ function presentationStateFor(payload: ViewerPayload): { slide: number; zoom: nu
   };
 }
 
-async function fetchOfficeBuffer(resourceUrl: string, signal: AbortSignal): Promise<ArrayBuffer> {
+async function fetchOfficeBuffer(
+  resourceUrl: string,
+  signal: AbortSignal,
+  strings: ViewerStrings,
+): Promise<ArrayBuffer> {
   const response = await fetch(resourceUrl, { signal });
-  if (!response.ok) throw new Error(`파일을 읽지 못했습니다 (${response.status})`);
+  if (!response.ok) throw new Error(strings.fileReadFailed(response.status));
   const declaredSize = Number(response.headers.get('content-length') ?? 0);
   if (Number.isFinite(declaredSize) && declaredSize > 60 * 1024 * 1024) {
-    throw new Error('파일이 60MB 제한을 초과합니다.');
+    throw new Error(strings.fileTooLarge);
   }
   const buffer = await response.arrayBuffer();
   if (buffer.byteLength > 60 * 1024 * 1024) {
-    throw new Error('파일이 60MB 제한을 초과합니다.');
+    throw new Error(strings.fileTooLarge);
   }
   return buffer;
 }
@@ -857,10 +878,10 @@ function collectBlobUrls(value: string, urls: Set<string>): void {
   for (const match of value.matchAll(/blob:[^\s)'";]+/g)) urls.add(match[0]);
 }
 
-function errorMessage(reason: unknown): string {
-  if (reason instanceof DOMException && reason.name === 'AbortError') return '불러오기가 취소되었습니다.';
+function errorMessage(reason: unknown, strings: ViewerStrings): string {
+  if (reason instanceof DOMException && reason.name === 'AbortError') return strings.loadingCancelled;
   if (reason instanceof Error && reason.message) return reason.message;
-  return String(reason || '알 수 없는 오류');
+  return String(reason || strings.unknownError);
 }
 
 function normalizeRotation(value: number): number {

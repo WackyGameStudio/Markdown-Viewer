@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import type { ViewerLanguage } from './i18n';
 
 export type ViewerKind = 'empty' | 'markdown' | 'image' | 'pdf' | 'word' | 'presentation';
 
@@ -26,6 +27,7 @@ export type ViewerViewState =
   | { kind: 'presentation'; slide: number; zoom: number };
 
 export interface ViewerPayload {
+  language: ViewerLanguage;
   kind: ViewerKind;
   name: string;
   activePath: string;
@@ -60,6 +62,7 @@ declare global {
 }
 
 const emptyPayload: ViewerPayload = {
+  language: 'ko',
   kind: 'empty',
   name: '',
   activePath: '',

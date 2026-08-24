@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.markdownviewer.R
 import com.example.markdownviewer.data.SmbConnectionConfig
 
 @Composable
@@ -59,6 +61,21 @@ fun SmbConnectionsDialog(
   var portText by remember { mutableStateOf(draft.port.toString()) }
   var validationMessage by remember { mutableStateOf<String?>(null) }
   var pendingDelete by remember { mutableStateOf<SmbConnectionConfig?>(null) }
+  val invalidInputMessage = stringResource(R.string.smb_invalid_input)
+  val localizedValidationMessages =
+    mapOf(
+      "서버 주소를 입력해 주세요." to stringResource(R.string.smb_validation_host_required),
+      "서버 주소에는 경로를 포함할 수 없습니다." to stringResource(R.string.smb_validation_host_path),
+      "포트는 1~65535 사이여야 합니다." to stringResource(R.string.smb_validation_port),
+      "공유 이름을 입력해 주세요." to stringResource(R.string.smb_validation_share_required),
+      "공유 이름에는 경로 구분자를 포함할 수 없습니다." to
+        stringResource(R.string.smb_validation_share_path),
+      "SMB 연결 식별자가 올바르지 않습니다." to stringResource(R.string.smb_validation_id),
+      "상위 폴더(..) 경로는 사용할 수 없습니다." to
+        stringResource(R.string.smb_validation_parent_path),
+      "폴더 경로에 제어 문자를 사용할 수 없습니다." to
+        stringResource(R.string.smb_validation_control_character),
+    )
 
   LaunchedEffect(connections) {
     val refreshed = connections.firstOrNull { it.id == draft.id }
@@ -91,12 +108,12 @@ fun SmbConnectionsDialog(
           ) {
             Icon(Icons.Outlined.Storage, contentDescription = null)
             Text(
-              "SMB 네트워크 폴더",
+              stringResource(R.string.smb_title),
               modifier = Modifier.weight(1f).padding(start = 10.dp),
               style = MaterialTheme.typography.headlineSmall,
             )
             IconButton(onClick = onDismiss) {
-              Icon(Icons.Outlined.Close, contentDescription = "SMB 설정 닫기")
+              Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.smb_close))
             }
           }
           HorizontalDivider()
@@ -106,14 +123,12 @@ fun SmbConnectionsDialog(
             verticalArrangement = Arrangement.spacedBy(12.dp),
           ) {
             item {
-              SmbNotice(
-                "앱은 SMB 2/3으로 직접 연결합니다. 100.x Tailscale 주소는 태블릿에서 Tailscale이 연결된 동안에만 접근되며, 일반 LAN 주소도 같은 방식으로 사용할 수 있습니다."
-              )
+              SmbNotice(stringResource(R.string.smb_notice))
             }
             if (connections.isNotEmpty()) {
               item {
                 Text(
-                  "저장된 연결",
+                  stringResource(R.string.smb_saved_connections),
                   modifier = Modifier.padding(horizontal = 24.dp),
                   color = MaterialTheme.colorScheme.primary,
                   style = MaterialTheme.typography.titleMedium,
@@ -153,34 +168,55 @@ fun SmbConnectionsDialog(
                   item {
                     TextButton(onClick = { select(SmbConnectionConfig.defaultDraft()) }) {
                       Icon(Icons.Outlined.Add, contentDescription = null)
-                      Text("새 연결", modifier = Modifier.padding(start = 4.dp))
+                      Text(
+                        stringResource(R.string.smb_new_connection),
+                        modifier = Modifier.padding(start = 4.dp),
+                      )
                     }
                   }
                 }
               }
             }
-            item { SmbTextField("연결 이름", draft.name, { draft = draft.copy(name = it) }) }
-            item { SmbTextField("서버 주소", draft.host, { draft = draft.copy(host = it) }) }
             item {
               SmbTextField(
-                label = "포트",
+                stringResource(R.string.smb_connection_name),
+                draft.name,
+                { draft = draft.copy(name = it) },
+              )
+            }
+            item {
+              SmbTextField(
+                stringResource(R.string.smb_server_address),
+                draft.host,
+                { draft = draft.copy(host = it) },
+              )
+            }
+            item {
+              SmbTextField(
+                label = stringResource(R.string.smb_port),
                 value = portText,
                 onValueChange = { portText = it.filter(Char::isDigit).take(5) },
                 keyboardType = KeyboardType.Number,
               )
             }
-            item { SmbTextField("공유 이름", draft.share, { draft = draft.copy(share = it) }) }
             item {
               SmbTextField(
-                "시작 폴더 (선택)",
+                stringResource(R.string.smb_share_name),
+                draft.share,
+                { draft = draft.copy(share = it) },
+              )
+            }
+            item {
+              SmbTextField(
+                stringResource(R.string.smb_start_folder),
                 draft.initialPath,
                 { draft = draft.copy(initialPath = it) },
-                supportingText = "공유 전체가 너무 크면 하위 폴더 경로를 지정하세요.",
+                supportingText = stringResource(R.string.smb_start_folder_help),
               )
             }
             item {
               Text(
-                "계정",
+                stringResource(R.string.smb_account_section),
                 modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp),
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.titleMedium,
@@ -188,34 +224,40 @@ fun SmbConnectionsDialog(
             }
             item {
               SmbTextField(
-                "사용자 이름",
+                stringResource(R.string.smb_username),
                 draft.username,
                 { draft = draft.copy(username = it) },
-                supportingText = "비워 두면 게스트 연결을 시도합니다.",
+                supportingText = stringResource(R.string.smb_username_help),
               )
             }
             item {
               SmbTextField(
-                label = "비밀번호",
+                label = stringResource(R.string.smb_password),
                 value = draft.password,
                 onValueChange = { draft = draft.copy(password = it) },
                 keyboardType = KeyboardType.Password,
                 password = true,
               )
             }
-            item { SmbTextField("도메인 (선택)", draft.domain, { draft = draft.copy(domain = it) }) }
+            item {
+              SmbTextField(
+                stringResource(R.string.smb_domain),
+                draft.domain,
+                { draft = draft.copy(domain = it) },
+              )
+            }
             item {
               SmbSwitchRow(
-                title = "SMB 서명 요구",
-                description = "서명되지 않은 SMB 연결을 거부합니다. 기본값으로 권장됩니다.",
+                title = stringResource(R.string.smb_require_signing),
+                description = stringResource(R.string.smb_require_signing_description),
                 checked = draft.requireSigning,
                 onCheckedChange = { draft = draft.copy(requireSigning = it) },
               )
             }
             item {
               SmbSwitchRow(
-                title = "SMB 암호화 요구",
-                description = "서버가 SMB 3 암호화를 지원할 때만 켜세요. Tailscale 통신 자체는 별도로 암호화됩니다.",
+                title = stringResource(R.string.smb_require_encryption),
+                description = stringResource(R.string.smb_require_encryption_description),
                 checked = draft.requireEncryption,
                 onCheckedChange = { draft = draft.copy(requireEncryption = it) },
               )
@@ -239,7 +281,10 @@ fun SmbConnectionsDialog(
                 if (connections.any { it.id == draft.id }) {
                   TextButton(onClick = { pendingDelete = draft }) {
                     Icon(Icons.Outlined.DeleteOutline, contentDescription = null)
-                    Text("삭제", modifier = Modifier.padding(start = 4.dp))
+                    Text(
+                      stringResource(R.string.common_delete),
+                      modifier = Modifier.padding(start = 4.dp),
+                    )
                   }
                 }
                 Button(
@@ -247,14 +292,15 @@ fun SmbConnectionsDialog(
                     val validated =
                       runCatching { draft.copy(port = portText.toIntOrNull() ?: 0).validated() }
                         .getOrElse { failure ->
-                          validationMessage = failure.message ?: "입력 내용을 확인해 주세요."
+                          validationMessage =
+                            localizedValidationMessages[failure.message] ?: failure.message ?: invalidInputMessage
                           return@Button
                         }
                     onConnect(validated)
                     onDismiss()
                   }
                 ) {
-                  Text("저장 후 연결")
+                  Text(stringResource(R.string.smb_save_and_connect))
                 }
               }
             }
@@ -268,8 +314,8 @@ fun SmbConnectionsDialog(
   if (deleting != null) {
     AlertDialog(
       onDismissRequest = { pendingDelete = null },
-      title = { Text("SMB 연결 삭제") },
-      text = { Text("‘${deleting.name}’ 연결 설정과 저장된 암호를 목록에서 삭제하시겠습니까?") },
+      title = { Text(stringResource(R.string.smb_delete_title)) },
+      text = { Text(stringResource(R.string.smb_delete_message, deleting.name)) },
       confirmButton = {
         TextButton(
           onClick = {
@@ -278,10 +324,14 @@ fun SmbConnectionsDialog(
             select(connections.firstOrNull { it.id != deleting.id } ?: SmbConnectionConfig.defaultDraft())
           }
         ) {
-          Text("삭제")
+          Text(stringResource(R.string.common_delete))
         }
       },
-      dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("취소") } },
+      dismissButton = {
+        TextButton(onClick = { pendingDelete = null }) {
+          Text(stringResource(R.string.common_cancel))
+        }
+      },
     )
   }
 }

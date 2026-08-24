@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
+import com.example.markdownviewer.R
 import com.example.markdownviewer.model.DocumentKind
 import com.example.markdownviewer.model.DocumentNode
 import java.io.BufferedInputStream
@@ -46,10 +47,12 @@ class SafDocumentRepository(private val context: Context) {
     withContext(Dispatchers.IO) {
       val root =
         DocumentFile.fromTreeUri(context, treeUri)
-          ?: error("선택한 폴더를 열 수 없습니다.")
-      if (!root.exists() || !root.isDirectory) error("선택한 위치가 폴더가 아닙니다.")
+          ?: error(context.localizedString(R.string.error_selected_folder_open))
+      if (!root.exists() || !root.isDirectory) {
+        error(context.localizedString(R.string.error_selected_location_not_folder))
+      }
       buildNode(root, relativePath = "", includeEmptyFolder = true)
-        ?: error("선택한 폴더를 읽을 수 없습니다.")
+        ?: error(context.localizedString(R.string.error_selected_folder_read))
     }
 
   suspend fun readMarkdown(uri: String): String =
@@ -63,18 +66,20 @@ class SafDocumentRepository(private val context: Context) {
           val read = reader.read(buffer)
           if (read < 0) break
           total += read
-          if (total > MAX_MARKDOWN_CHARS) error("Markdown 파일이 너무 큽니다.")
+          if (total > MAX_MARKDOWN_CHARS) {
+            error(context.localizedString(R.string.error_markdown_too_large))
+          }
           result.append(buffer, 0, read)
         }
         result.toString()
-      } ?: error("문서를 읽을 수 없습니다.")
+      } ?: error(context.localizedString(R.string.error_document_read))
     }
 
   suspend fun validateOfficePackage(uri: String, kind: DocumentKind) {
     withContext(Dispatchers.IO) {
       resolver.openInputStream(uri.toUri())?.use { stream ->
-        OfficePackageValidator.validate(stream, kind)
-      } ?: error("Office 문서를 읽을 수 없습니다.")
+        OfficePackageValidator.validate(stream, kind, OfficeValidationStrings.forContext(context))
+      } ?: error(context.localizedString(R.string.error_office_read))
     }
   }
 
@@ -85,7 +90,11 @@ class SafDocumentRepository(private val context: Context) {
       buffered.close()
       return null
     }
-    return SizeLimitedInputStream(buffered, maxBytes)
+    return SizeLimitedInputStream(
+      buffered,
+      maxBytes,
+      context.localizedString(R.string.error_document_size_limit),
+    )
   }
 
   fun mimeType(uri: String, fileName: String = ""): String =
@@ -96,7 +105,9 @@ class SafDocumentRepository(private val context: Context) {
     relativePath: String,
     includeEmptyFolder: Boolean = false,
   ): DocumentNode? {
-    val name = file.name?.takeIf { it.isNotBlank() } ?: "이름 없는 문서"
+    val name =
+      file.name?.takeIf { it.isNotBlank() }
+        ?: context.localizedString(R.string.document_unnamed)
     if (name.startsWith('.') && relativePath.isNotEmpty()) return null
 
     if (file.isDirectory) {
@@ -230,6 +241,7 @@ class SafDocumentRepository(private val context: Context) {
 internal class SizeLimitedInputStream(
   source: InputStream,
   private val maxBytes: Long,
+  private val limitExceededMessage: String = "문서가 허용 크기를 초과했습니다.",
 ) : FilterInputStream(source) {
   private var consumed = 0L
   private var markedConsumed = -1L
@@ -273,6 +285,6 @@ internal class SizeLimitedInputStream(
 
   private fun record(count: Long) {
     consumed += count
-    if (consumed > maxBytes) throw IOException("문서가 허용 크기를 초과했습니다.")
+    if (consumed > maxBytes) throw IOException(limitExceededMessage)
   }
 }

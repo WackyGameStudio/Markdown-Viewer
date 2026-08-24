@@ -3,6 +3,7 @@ package com.example.markdownviewer.data
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.example.markdownviewer.R
 import com.example.markdownviewer.model.DocumentKind
 import com.example.markdownviewer.model.DocumentNode
 import com.hierynomus.msfscc.FileAttributes
@@ -36,9 +37,9 @@ class SmbDocumentRepository(private val context: Context) {
       val normalized = config.validated()
       connect(normalized).use { handle ->
         if (normalized.initialPath.isNotEmpty() && !handle.share.folderExists(normalized.initialPath)) {
-          error("시작 폴더를 찾을 수 없습니다: ${normalized.initialPath}")
+          error(context.localizedString(R.string.error_smb_start_folder_missing, normalized.initialPath))
         }
-        val counter = NodeCounter()
+        val counter = NodeCounter(context.localizedString(R.string.error_smb_tree_too_large))
         val children =
           buildChildren(
             handle = handle,
@@ -69,11 +70,13 @@ class SmbDocumentRepository(private val context: Context) {
             val read = reader.read(buffer)
             if (read < 0) break
             total += read
-            if (total > MAX_MARKDOWN_CHARS) error("Markdown 파일이 너무 큽니다.")
+            if (total > MAX_MARKDOWN_CHARS) {
+              error(context.localizedString(R.string.error_markdown_too_large))
+            }
             result.append(buffer, 0, read)
           }
           result.toString()
-        } ?: error("SMB 문서를 읽을 수 없습니다.")
+        } ?: error(context.localizedString(R.string.error_smb_document_read))
     }
 
   suspend fun validateOfficePackage(
@@ -83,8 +86,8 @@ class SmbDocumentRepository(private val context: Context) {
   ) {
     withContext(Dispatchers.IO) {
       openStream(config, uri, MAX_OFFICE_VALIDATION_BYTES, requirePdfHeader = false)?.use { stream ->
-        OfficePackageValidator.validate(stream, kind)
-      } ?: error("SMB Office 문서를 읽을 수 없습니다.")
+        OfficePackageValidator.validate(stream, kind, OfficeValidationStrings.forContext(context))
+      } ?: error(context.localizedString(R.string.error_smb_office_read))
     }
   }
 
@@ -116,7 +119,11 @@ class SmbDocumentRepository(private val context: Context) {
         buffered.close()
         null
       } else {
-        SizeLimitedInputStream(buffered, maxBytes)
+        SizeLimitedInputStream(
+          buffered,
+          maxBytes,
+          context.localizedString(R.string.error_document_size_limit),
+        )
       }
     } catch (_: Exception) {
       file?.closeSilently()
@@ -147,13 +154,15 @@ class SmbDocumentRepository(private val context: Context) {
   ): Uri =
     withContext(Dispatchers.IO) {
       require(document.sizeBytes <= MAX_EXTERNAL_FILE_BYTES) {
-        "외부 앱으로 전달하기에는 파일이 너무 큽니다."
+        context.localizedString(R.string.error_external_file_too_large)
       }
-      val location = locationFor(config, document.uri) ?: error("SMB 문서 주소가 올바르지 않습니다.")
+      val location =
+        locationFor(config, document.uri)
+          ?: error(context.localizedString(R.string.error_smb_document_uri))
       val safeName = sanitizeFileName(document.name)
       val connectionDirectory = File(context.cacheDir, "external/${location.connectionId}")
       check(connectionDirectory.exists() || connectionDirectory.mkdirs()) {
-        "임시 문서 폴더를 만들 수 없습니다."
+        context.localizedString(R.string.error_temp_folder_create)
       }
       val target = File(connectionDirectory, "${document.uri.hashCode().toUInt().toString(16)}-$safeName")
       val temporary = File.createTempFile("copy-", ".tmp", connectionDirectory)
@@ -165,8 +174,10 @@ class SmbDocumentRepository(private val context: Context) {
             requirePdfHeader = document.kind == DocumentKind.Pdf,
           )
           ?.use { input -> temporary.outputStream().buffered().use(input::copyTo) }
-          ?: error("SMB 문서를 내려받지 못했습니다.")
-        if (target.exists() && !target.delete()) error("기존 임시 문서를 교체하지 못했습니다.")
+          ?: error(context.localizedString(R.string.error_smb_download))
+        if (target.exists() && !target.delete()) {
+          error(context.localizedString(R.string.error_temp_document_replace))
+        }
         if (!temporary.renameTo(target)) {
           temporary.copyTo(target, overwrite = true)
           temporary.delete()
@@ -187,7 +198,9 @@ class SmbDocumentRepository(private val context: Context) {
     depth: Int,
     counter: NodeCounter,
   ): List<DocumentNode> {
-    if (depth > MAX_TREE_DEPTH) error("SMB 폴더가 너무 깊어 일부 문서를 안전하게 탐색할 수 없습니다.")
+    if (depth > MAX_TREE_DEPTH) {
+      error(context.localizedString(R.string.error_smb_tree_too_deep))
+    }
     val entries = handle.share.list(directoryPath)
     return entries
       .asSequence()
@@ -261,7 +274,7 @@ class SmbDocumentRepository(private val context: Context) {
         }
       session = connection.authenticate(authentication)
       val share = session.connectShare(config.share) as? DiskShare
-        ?: error("선택한 SMB 공유는 파일 공유가 아닙니다.")
+        ?: error(context.localizedString(R.string.error_smb_not_file_share))
       return SmbShareHandle(client, connection, session, share)
     } catch (failure: Exception) {
       runCatching { session?.close() }
@@ -272,7 +285,7 @@ class SmbDocumentRepository(private val context: Context) {
   }
 
   private fun openReadOnlyFile(share: DiskShare, path: String, sequential: Boolean): SmbFile {
-    require(path.isNotBlank()) { "SMB 파일 경로가 비어 있습니다." }
+    require(path.isNotBlank()) { context.localizedString(R.string.error_smb_file_path_empty) }
     val options = EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE)
     options +=
       if (sequential) SMB2CreateOptions.FILE_SEQUENTIAL_ONLY else SMB2CreateOptions.FILE_RANDOM_ACCESS
@@ -303,7 +316,7 @@ class SmbDocumentRepository(private val context: Context) {
   private fun smbErrorMessage(failure: Throwable): String {
     val detail = failure.message?.takeIf { it.isNotBlank() }
     return buildString {
-      append("SMB 서버에 연결하지 못했습니다. 주소·공유 이름·계정과 네트워크 연결을 확인해 주세요.")
+      append(context.localizedString(R.string.error_smb_connect))
       if (detail != null) append("\n").append(detail)
     }
   }
@@ -314,13 +327,13 @@ class SmbDocumentRepository(private val context: Context) {
     return sanitized.ifBlank { "document" }
   }
 
-  private class NodeCounter {
+  private class NodeCounter(private val limitExceededMessage: String) {
     private var count = 0
 
     fun increment() {
       count += 1
       if (count > MAX_TREE_NODES) {
-        error("SMB 폴더의 항목이 너무 많습니다. 더 작은 시작 폴더를 지정해 주세요.")
+        error(limitExceededMessage)
       }
     }
   }

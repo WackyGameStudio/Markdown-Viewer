@@ -3,8 +3,11 @@ package com.example.markdownviewer.ui
 import android.app.Application
 import android.net.Uri
 import androidx.core.net.toUri
+import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.markdownviewer.R
+import com.example.markdownviewer.data.AppLanguagePreferences
 import com.example.markdownviewer.data.FolderPreferences
 import com.example.markdownviewer.data.RandomAccessDocument
 import com.example.markdownviewer.data.SafDocumentRepository
@@ -104,7 +107,7 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
     if (persistPermission) {
       runCatching { repository.persistReadPermission(uri) }
         .onFailure { failure ->
-          showError(failure.message ?: "폴더 읽기 권한을 저장하지 못했습니다.")
+          showError(failure.message ?: text(R.string.error_folder_permission_save))
           return
         }
     }
@@ -165,7 +168,7 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
           mutableState.update {
             it.copy(
               isTreeLoading = false,
-              errorMessage = failure.message ?: "폴더를 불러오지 못했습니다.",
+              errorMessage = failure.message ?: text(R.string.error_folder_load),
             )
           }
         }
@@ -186,7 +189,7 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
     val normalized =
       runCatching { config.validated() }
         .getOrElse { failure ->
-          showError(failure.message ?: "SMB 연결 설정이 올바르지 않습니다.")
+          showError(localizedSmbValidationMessage(failure.message))
           return
         }
 
@@ -203,7 +206,7 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
             mutableState.update {
               it.copy(
                 isTreeLoading = false,
-                errorMessage = failure.message ?: "SMB 폴더를 불러오지 못했습니다.",
+                errorMessage = failure.message ?: text(R.string.error_smb_folder_load),
               )
             }
             return@launch
@@ -216,7 +219,7 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
             mutableState.update {
               it.copy(
                 isTreeLoading = false,
-                errorMessage = failure.message ?: "SMB 연결 설정을 저장하지 못했습니다.",
+                errorMessage = failure.message ?: text(R.string.error_smb_settings_save),
               )
             }
             return@launch
@@ -264,7 +267,7 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
     val connections =
       runCatching { smbPreferences.delete(connectionId) }
         .getOrElse {
-          showError("SMB 연결 설정을 삭제하지 못했습니다.")
+          showError(text(R.string.error_smb_settings_delete))
           return
         }
     smbConnectionsById = connections.associateBy(SmbConnectionConfig::id)
@@ -309,7 +312,7 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
       return
     }
     if (!node.isVisibleInTree) {
-      showError("이 파일은 HTML 페이지에서 사용하는 리소스입니다.")
+      showError(text(R.string.error_html_resource))
       return
     }
     val retained = history.take(historyIndex + 1)
@@ -323,7 +326,7 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
   fun navigateToReference(activePath: String, reference: String) {
     val node = resolveNode(activePath, reference)
     if (node == null || node.isFolder || !node.isVisibleInTree) {
-      showError("연결된 문서를 찾을 수 없습니다: $reference")
+      showError(text(R.string.error_linked_document_missing, reference))
       return
     }
     selectDocument(node)
@@ -467,7 +470,7 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
           it.copy(
             recentFolders = preferences.recentFolders(),
             bookmarks = preferences.bookmarks(),
-            errorMessage = "저장된 SMB 연결 설정을 찾을 수 없습니다. 연결을 다시 등록해 주세요.",
+            errorMessage = text(R.string.error_saved_smb_missing),
           )
         }
       } else {
@@ -482,7 +485,7 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
         it.copy(
           recentFolders = preferences.recentFolders(),
           bookmarks = preferences.bookmarks(),
-          errorMessage = "이 폴더의 읽기 권한이 만료되었습니다. 폴더를 다시 선택해 주세요.",
+          errorMessage = text(R.string.error_folder_permission_expired),
         )
       }
       return
@@ -499,21 +502,21 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
   fun updateSetting(key: ViewerSettingKey, enabled: Boolean) {
     viewModelScope.launch {
       runCatching { settingsRepository.set(key, enabled) }
-        .onFailure { showError("설정을 저장하지 못했습니다.") }
+        .onFailure { showError(text(R.string.error_settings_save)) }
     }
   }
 
   fun bindGesture(action: ViewerAction, trigger: GestureTrigger) {
     viewModelScope.launch {
       runCatching { settingsRepository.bindGesture(action, trigger) }
-        .onFailure { showError("제스처 설정을 저장하지 못했습니다.") }
+        .onFailure { showError(text(R.string.error_gesture_save)) }
     }
   }
 
   fun resetGestureBindings() {
     viewModelScope.launch {
       runCatching { settingsRepository.resetGestureBindings() }
-        .onFailure { showError("기본 제스처 설정을 복원하지 못했습니다.") }
+        .onFailure { showError(text(R.string.error_gesture_reset)) }
     }
   }
 
@@ -575,7 +578,7 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
               it.copy(
                 isDocumentLoading = false,
                 documentErrorMessage =
-                  failure.message ?: "Office 문서가 손상되었거나 허용 범위를 초과했습니다.",
+                  failure.message ?: text(R.string.error_office_invalid),
               )
             }
           }
@@ -606,7 +609,7 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
           mutableState.update {
             it.copy(
               isDocumentLoading = false,
-              documentErrorMessage = failure.message ?: "Markdown 문서를 읽지 못했습니다.",
+              documentErrorMessage = failure.message ?: text(R.string.error_markdown_read),
             )
           }
         }
@@ -617,6 +620,27 @@ class MarkdownViewerViewModel(application: Application) : AndroidViewModel(appli
     val normalized = SafDocumentRepository.normalizeReference(activePath, reference) ?: return null
     return nodesByPath[pathKey(normalized)]
   }
+
+  private fun text(@StringRes resourceId: Int, vararg formatArgs: Any): String =
+    AppLanguagePreferences.localizedContext(getApplication<Application>())
+      .getString(resourceId, *formatArgs)
+
+  private fun localizedSmbValidationMessage(message: String?): String =
+    when (message) {
+      "서버 주소를 입력해 주세요." -> text(R.string.smb_validation_host_required)
+      "서버 주소에는 경로를 포함할 수 없습니다." -> text(R.string.smb_validation_host_path)
+      "포트는 1~65535 사이여야 합니다." -> text(R.string.smb_validation_port)
+      "공유 이름을 입력해 주세요." -> text(R.string.smb_validation_share_required)
+      "공유 이름에는 경로 구분자를 포함할 수 없습니다." ->
+        text(R.string.smb_validation_share_path)
+      "SMB 연결 식별자가 올바르지 않습니다." -> text(R.string.smb_validation_id)
+      "상위 폴더(..) 경로는 사용할 수 없습니다." ->
+        text(R.string.smb_validation_parent_path)
+      "폴더 경로에 제어 문자를 사용할 수 없습니다." ->
+        text(R.string.smb_validation_control_character)
+      null -> text(R.string.error_smb_invalid_settings)
+      else -> message
+    }
 
   private fun showError(message: String) {
     mutableState.update { it.copy(errorMessage = message) }

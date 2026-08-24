@@ -41,10 +41,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.markdownviewer.R
 import com.example.markdownviewer.model.DocumentKind
 import com.example.markdownviewer.model.DocumentNode
 
@@ -67,7 +69,7 @@ fun DocumentTreePanel(
         verticalAlignment = Alignment.CenterVertically,
       ) {
         Text(
-          text = "탐색기",
+          text = stringResource(R.string.explorer_title),
           modifier = Modifier.weight(1f),
           style = MaterialTheme.typography.labelLarge,
           fontWeight = FontWeight.SemiBold,
@@ -75,12 +77,20 @@ fun DocumentTreePanel(
         )
         if (root != null) {
           IconButton(onClick = onRefresh) {
-            Icon(Icons.Outlined.Refresh, contentDescription = "폴더 새로 고침")
+            Icon(
+              Icons.Outlined.Refresh,
+              contentDescription = stringResource(R.string.explorer_refresh),
+            )
           }
           IconButton(onClick = onToggleBookmark) {
             Icon(
               imageVector = if (isBookmarked) Icons.Outlined.BookmarkAdded else Icons.Outlined.Bookmark,
-              contentDescription = if (isBookmarked) "즐겨찾기 해제" else "즐겨찾기에 추가",
+              contentDescription =
+                if (isBookmarked) {
+                  stringResource(R.string.explorer_remove_bookmark)
+                } else {
+                  stringResource(R.string.explorer_add_bookmark)
+                },
               tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
           }
@@ -96,7 +106,7 @@ fun DocumentTreePanel(
         root == null ->
           Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
             Text(
-              text = "문서 폴더를 열면 Markdown, 이미지, PDF, 영상, Office, HTML 파일이 여기에 표시됩니다.",
+              text = stringResource(R.string.explorer_empty_help),
               style = MaterialTheme.typography.bodyMedium,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

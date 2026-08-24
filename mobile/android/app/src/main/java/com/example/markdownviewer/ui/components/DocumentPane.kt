@@ -40,8 +40,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.markdownviewer.R
 import com.example.markdownviewer.model.DocumentKind
 import com.example.markdownviewer.model.DocumentNode
 import com.example.markdownviewer.model.GestureTrigger
@@ -108,10 +110,16 @@ fun DocumentPane(
         verticalAlignment = Alignment.CenterVertically,
       ) {
         IconButton(onClick = onGoBack, enabled = canGoBack) {
-          Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "이전 문서")
+          Icon(
+            Icons.AutoMirrored.Outlined.ArrowBack,
+            contentDescription = stringResource(R.string.nav_previous_document),
+          )
         }
         IconButton(onClick = onGoForward, enabled = canGoForward) {
-          Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "다음 문서")
+          Icon(
+            Icons.AutoMirrored.Outlined.ArrowForward,
+            contentDescription = stringResource(R.string.nav_next_document),
+          )
         }
         Icon(
           imageVector = displayedDocument.kind.icon,
@@ -128,12 +136,18 @@ fun DocumentPane(
         )
         if (!keepsPreviousDocument && showTocAction && displayedDocument.kind == DocumentKind.Markdown) {
           IconButton(onClick = onShowToc) {
-            Icon(Icons.AutoMirrored.Outlined.MenuBook, contentDescription = "목차 열기")
+            Icon(
+              Icons.AutoMirrored.Outlined.MenuBook,
+              contentDescription = stringResource(R.string.nav_open_toc),
+            )
           }
         }
         if (settings.showExternalOpenButton && showDocumentExternalButton) {
           IconButton(onClick = { onOpenDocumentExternal(displayedDocument) }) {
-            Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = "외부 앱으로 열기")
+            Icon(
+              Icons.AutoMirrored.Outlined.OpenInNew,
+              contentDescription = stringResource(R.string.nav_open_external),
+            )
           }
         }
       }
@@ -233,7 +247,7 @@ private fun DocumentErrorState(message: String) {
       tint = MaterialTheme.colorScheme.error,
     )
     Spacer(Modifier.height(16.dp))
-    Text("문서를 열 수 없습니다", style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.document_open_error_title), style = MaterialTheme.typography.titleMedium)
     Spacer(Modifier.height(8.dp))
     Text(
       message,
@@ -257,10 +271,10 @@ private fun EmptyDocumentState() {
       tint = MaterialTheme.colorScheme.primary,
     )
     Spacer(Modifier.height(16.dp))
-    Text("볼 문서를 선택하세요", style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.document_select_prompt), style = MaterialTheme.typography.titleMedium)
     Spacer(Modifier.height(6.dp))
     Text(
-      "Markdown, 이미지, PDF, 영상, Office, HTML 파일을 열 수 있습니다.",
+      stringResource(R.string.document_supported_types),
       style = MaterialTheme.typography.bodyMedium,
       color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

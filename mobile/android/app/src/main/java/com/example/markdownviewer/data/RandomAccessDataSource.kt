@@ -12,6 +12,8 @@ import java.io.IOException
 @UnstableApi
 class RandomAccessDataSource(
   private val opener: (String) -> RandomAccessDocument?,
+  private val openErrorMessage: String = "SMB 영상 스트림을 열 수 없습니다.",
+  private val positionErrorMessage: String = "요청한 재생 위치가 파일 범위를 벗어났습니다.",
 ) : BaseDataSource(true) {
   private var document: RandomAccessDocument? = null
   private var currentUri: Uri? = null
@@ -22,10 +24,10 @@ class RandomAccessDataSource(
   @Throws(IOException::class)
   override fun open(dataSpec: DataSpec): Long {
     transferInitializing(dataSpec)
-    val opened = opener(dataSpec.uri.toString()) ?: throw IOException("SMB 영상 스트림을 열 수 없습니다.")
+    val opened = opener(dataSpec.uri.toString()) ?: throw IOException(openErrorMessage)
     if (dataSpec.position > opened.length) {
       opened.close()
-      throw EOFException("요청한 재생 위치가 파일 범위를 벗어났습니다.")
+      throw EOFException(positionErrorMessage)
     }
     document = opened
     currentUri = dataSpec.uri
@@ -70,7 +72,10 @@ class RandomAccessDataSource(
 
   class Factory(
     private val opener: (String) -> RandomAccessDocument?,
+    private val openErrorMessage: String = "SMB 영상 스트림을 열 수 없습니다.",
+    private val positionErrorMessage: String = "요청한 재생 위치가 파일 범위를 벗어났습니다.",
   ) : DataSource.Factory {
-    override fun createDataSource(): DataSource = RandomAccessDataSource(opener)
+    override fun createDataSource(): DataSource =
+      RandomAccessDataSource(opener, openErrorMessage, positionErrorMessage)
   }
 }

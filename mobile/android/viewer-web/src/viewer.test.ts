@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { classifyEdgeSwipe } from './gestures';
 import { documentKindFromReference, isExternalReference } from './references';
+import { viewerStrings } from './i18n';
 
 describe('document references', () => {
   it('recognizes supported documents with suffixes', () => {
@@ -41,5 +42,14 @@ describe('edge swipe classification', () => {
     expect(
       classifyEdgeSwipe(viewport, { x: 8, y: 500 }, { x: 120, y: 500 }, { ...enabled, edgeLeft: false }),
     ).toBeNull();
+  });
+});
+
+describe('viewer localization', () => {
+  it('provides Korean and English document controls', () => {
+    expect(viewerStrings.ko.selectDocument).toBe('문서를 선택하세요.');
+    expect(viewerStrings.en.selectDocument).toBe('Select a document.');
+    expect(viewerStrings.ko.legacyOffice('PPT')).toContain('.ppt');
+    expect(viewerStrings.en.legacyOffice('DOC')).toContain('.doc');
   });
 });

@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -55,6 +56,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.compose.ContentFrame
+import com.example.markdownviewer.R
 import com.example.markdownviewer.data.ViewerSettings
 import com.example.markdownviewer.data.RandomAccessDataSource
 import com.example.markdownviewer.data.RandomAccessDocument
@@ -80,19 +82,27 @@ fun VideoPlayer(
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
+  val smbVideoOpenError = stringResource(R.string.error_smb_video_open)
+  val videoPositionError = stringResource(R.string.error_video_position_out_of_range)
   val lifecycleOwner = LocalLifecycleOwner.current
   val hostView = LocalView.current
   val restoredPosition =
     if (settings.videoRememberPosition) videoPositionFromState(initialViewState) else 0L
   val player =
-    remember(document.uri) {
+    remember(document.uri, smbVideoOpenError, videoPositionError) {
       ExoPlayer.Builder(context).build().apply {
         setAudioAttributes(AudioAttributes.DEFAULT, true)
         setHandleAudioBecomingNoisy(true)
         val mediaItem = MediaItem.fromUri(document.uri.toUri())
         if (SmbDocumentUri.isSmb(document.uri)) {
           setMediaSource(
-            ProgressiveMediaSource.Factory(RandomAccessDataSource.Factory(openRandomAccessDocument))
+            ProgressiveMediaSource.Factory(
+                RandomAccessDataSource.Factory(
+                  openRandomAccessDocument,
+                  smbVideoOpenError,
+                  videoPositionError,
+                )
+              )
               .createMediaSource(mediaItem)
           )
         } else {
@@ -210,9 +220,9 @@ fun VideoPlayer(
       CircularProgressIndicator(Modifier.align(Alignment.Center), color = Color.White)
     }
 
-    if (error != null) {
+    error?.let { message ->
       Text(
-        text = "영상을 재생할 수 없습니다: $error",
+        text = stringResource(R.string.video_error, message),
         modifier =
           Modifier.align(Alignment.Center)
             .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.medium)
@@ -273,18 +283,28 @@ private fun VideoControls(
       verticalAlignment = Alignment.CenterVertically,
     ) {
       IconButton(onClick = onSeekBack) {
-        Icon(Icons.Outlined.Replay10, contentDescription = "10초 뒤로", tint = Color.White)
+        Icon(
+          Icons.Outlined.Replay10,
+          contentDescription = stringResource(R.string.video_rewind_10),
+          tint = Color.White,
+        )
       }
       IconButton(onClick = onTogglePlayback, modifier = Modifier.size(56.dp)) {
         Icon(
           if (isPlaying) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
-          contentDescription = if (isPlaying) "일시정지" else "재생",
+          contentDescription =
+            if (isPlaying) stringResource(R.string.video_pause)
+            else stringResource(R.string.video_play),
           modifier = Modifier.size(34.dp),
           tint = Color.White,
         )
       }
       IconButton(onClick = onSeekForward) {
-        Icon(Icons.Outlined.Forward10, contentDescription = "10초 앞으로", tint = Color.White)
+        Icon(
+          Icons.Outlined.Forward10,
+          contentDescription = stringResource(R.string.video_forward_10),
+          tint = Color.White,
+        )
       }
       Text(
         "${formatDuration(position)} / ${formatDuration(duration)}",
@@ -295,7 +315,9 @@ private fun VideoControls(
       IconButton(onClick = onToggleFit) {
         Icon(
           if (fillScreen) Icons.Outlined.FitScreen else Icons.Outlined.Fullscreen,
-          contentDescription = if (fillScreen) "화면에 맞춤" else "화면 채우기",
+          contentDescription =
+            if (fillScreen) stringResource(R.string.video_fit)
+            else stringResource(R.string.video_fill),
           tint = Color.White,
         )
       }
