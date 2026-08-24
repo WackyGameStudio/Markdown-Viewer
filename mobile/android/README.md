@@ -4,6 +4,34 @@
 
 Wails v3와 다른 크로스플랫폼 선택지를 비교한 근거는 [ARCHITECTURE.md](ARCHITECTURE.md)에 정리했습니다. 2026년 8월 현재 Wails v3 Android는 동작하지만 공식적으로 experimental이므로, 이 앱의 생산 기반은 Android 네이티브 셸로 결정했습니다.
 
+## 빠른 시작
+
+필수 준비물은 Android Studio(번들 JBR 포함), Android SDK Platform·Build Tools 37, Platform Tools, Node.js/npm입니다. 실기기에 설치할 때는 기기의 개발자 옵션과 USB 디버깅도 켭니다.
+
+저장소 루트의 PowerShell에서 다음 명령을 실행하면 웹 뷰어 테스트·번들, Android 단위 테스트·린트, 디버그 APK 빌드와 연결 기기 설치까지 진행됩니다.
+
+```powershell
+Set-Location .\mobile\android
+.\scripts\build.ps1
+.\scripts\install-debug.ps1
+```
+
+Android Studio에서는 `mobile/android` 디렉터리를 프로젝트로 엽니다. 디버그 APK는 `app/build/outputs/apk/debug/app-debug.apk`에 생성됩니다.
+
+## 지원 형식
+
+| 종류 | 확장자 | 앱 내부 보기 | 비고 |
+| --- | --- | --- | --- |
+| Markdown | `.md` | 지원 | GFM, Mermaid, 코드 강조, 목차, 상대 링크 |
+| 이미지 | `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg`, `.bmp` | 지원 | 확대·회전·라이트박스 |
+| PDF | `.pdf` | 지원 | 페이지 이동·선택 가능한 텍스트/링크 레이어·암호 입력 |
+| 영상 | `.mp4`, `.m4v`, `.webm`, `.mkv`, `.mov` | 지원 | 실제 코덱 지원은 Android 기기 디코더에 따라 다름 |
+| Office Open XML | `.docx`, `.pptx` | 보기 전용 지원 | 편집·매크로·완전한 레이아웃 재현은 지원하지 않음 |
+| 구형 Office | `.doc`, `.ppt` | 외부 앱으로 열기 | 앱 내부 변환 없음 |
+| HTML | `.html`, `.htm` | 제한된 오프라인 보기 | 스크립트·iframe·폼·원격 탐색 차단 |
+
+앱의 기본 언어는 한국어입니다. `설정 → 일반 → 언어`에서 한국어와 영어를 즉시 전환할 수 있으며 선택값은 재실행 후에도 유지됩니다.
+
 ## 현재 구현된 기능
 
 - Android Storage Access Framework(SAF) 폴더 선택과 영구 읽기 권한
@@ -83,39 +111,27 @@ SMB 기능 자체는 Tailscale 전용이 아닙니다. 같은 화면에 일반 L
 
 SMB 문서는 SAF 문서와 같은 렌더러로 Markdown·이미지·PDF·DOCX·PPTX·HTML을 엽니다. 영상은 SMB 파일을 모두 내려받지 않고 Media3가 필요한 위치를 임의 읽기하여 재생·탐색합니다. 외부 앱으로 열 때만 파일을 앱 캐시에 임시 복사하고 `FileProvider` 읽기 권한으로 전달합니다. SMB 서명 요구는 기본으로 켜져 있고, 서버가 SMB 3 암호화를 지원할 때는 별도의 `SMB 암호화 요구`도 켤 수 있습니다.
 
-## 이 PC에 준비된 개발 환경
-
-- Android Studio Quail 3 Patch 1 (`2026.1.3.8`): `%LOCALAPPDATA%\Programs\AndroidStudio-2026.1.3.8\android-studio`
-- Android SDK: `%LOCALAPPDATA%\Android\Sdk`
-- API 36·37 플랫폼과 Build Tools 36.0.0·37.0.0
-- Android SDK Command-line Tools 23.0
-- Platform Tools 37.0.1, Emulator 37.1.11
-- API 36·37 Google APIs x86_64 시스템 이미지
-- `MarkdownViewer_Phone_API36` (Pixel 9) AVD
-- `MarkdownViewer_Phone_API37` (Pixel 9) AVD
-- `MarkdownViewer_Tablet_API36` (Pixel Tablet) AVD
-- `MarkdownViewer_Tablet_API37` (Pixel Tablet) AVD
-- Windows Hypervisor Platform 가속 확인 완료
-- Node.js 24.14.1, npm 11.12.1
+## 개발 환경
 
 프로젝트 빌드 기준은 Android Gradle Plugin 9.3.1, Gradle 9.7.1, Kotlin 2.4.10, Compose BOM 2026.08.00입니다. `minSdk 28`, `targetSdk 37`, `compileSdk 37`로 구성했습니다.
 
-Android Studio는 다음 파일을 실행하고 이 디렉터리를 프로젝트로 열면 됩니다.
+필요한 도구는 다음과 같습니다.
 
-```powershell
-& "$env:LOCALAPPDATA\Programs\AndroidStudio-2026.1.3.8\android-studio\bin\studio64.exe"
-```
+- Android Studio의 번들 JBR 또는 Gradle 9.7.1과 호환되는 JDK(앱 소스·바이트코드 기준은 Java 17)
+- Android SDK Platform 37, Build Tools 37.0.0, Platform Tools
+- Node.js 24와 npm
+- 테스트용 Android 9(API 28) 이상 기기 또는 에뮬레이터
 
-프로젝트 경로는 `D:\AI\MarkdownViewer\mobile\android`입니다. 시스템 전역 Java나 Gradle 설치는 필요하지 않습니다. Studio 번들 JBR과 프로젝트 Gradle Wrapper를 사용합니다.
+시스템 전역 Gradle 설치는 필요하지 않습니다. 저장소의 Gradle Wrapper를 사용합니다. `scripts/android-env.ps1`은 이미 유효한 `JAVA_HOME`, `STUDIO_JDK`, `ANDROID_HOME`, `ANDROID_SDK_ROOT`를 우선 사용하고, 설정되지 않았으면 Windows의 일반적인 Android Studio와 SDK 설치 위치를 탐색합니다.
 
-에뮬레이터 개발에는 지금 추가 설치가 필요하지 않습니다. 실제 스마트폰·태블릿에서도 확인하려면 해당 기기에서 개발자 옵션과 USB 디버깅을 켜고, Windows가 기기를 인식하지 못할 때만 제조사 USB 드라이버를 설치하면 됩니다.
+현재 개발 PC에서는 Android Studio 2026.1.3.8, API 36·37 에뮬레이터, Node.js 24.14.1로 검증했습니다. 실기기는 개발자 옵션과 USB 디버깅을 켜고, Windows가 인식하지 못할 때만 제조사 USB 드라이버를 추가합니다.
 
 ## 빌드와 실행
 
 PowerShell에서 다음 명령으로 웹 자산 테스트·번들, Android 단위 테스트·린트, 디버그 APK 조립을 한 번에 수행합니다.
 
 ```powershell
-Set-Location D:\AI\MarkdownViewer\mobile\android
+Set-Location .\mobile\android
 .\scripts\build.ps1
 ```
 
@@ -157,6 +173,17 @@ mobile/android/
 
 `viewer-web/src`를 수정한 뒤에는 `npm run build`를 실행해야 `app/src/main/assets/viewer`가 갱신됩니다. 일반 빌드 스크립트는 이 과정을 자동 수행합니다.
 
+## 생성 파일과 Git 정책
+
+프로젝트의 `.gitignore`는 Gradle·Kotlin 캐시, 모든 모듈의 `build` 디렉터리, Android Studio 개인 설정, `local.properties`, Node 의존성과 임시 번들, APK/AAB, 서명 키와 로컬 비밀 설정을 제외합니다.
+
+다음 파일은 생성되거나 환경에 따라 달라지더라도 의도적으로 다르게 취급합니다.
+
+- `gradle/wrapper/gradle-wrapper.jar`와 `gradle-wrapper.properties`는 재현 가능한 빌드를 위해 추적합니다.
+- `viewer-web/package-lock.json`은 웹 의존성 버전을 고정하므로 추적합니다.
+- `app/src/main/assets/viewer`는 오프라인 WebView 번들이며 APK 빌드에 필요하므로 추적합니다. `viewer-web/dist`와는 역할이 다릅니다.
+- `*.jks`, `*.keystore`, `keystore.properties`, `signing.properties`, `.env*`는 커밋하지 않습니다. 공유가 필요한 값은 비밀이 없는 예제 파일만 별도로 만듭니다.
+
 ## 보안 경계
 
 - 저장소 전체 권한을 요청하지 않고 사용자가 선택한 SAF 트리만 읽습니다.
@@ -170,6 +197,14 @@ mobile/android/
 - HTML 문서는 별도 WebView에서 JavaScript·브리지·원격 탐색·폼·frame·object를 차단합니다.
 - DOCX/PPTX는 렌더링 전에 ZIP 경로 순회, 과도한 항목 수와 압축 해제 크기를 검사합니다.
 - 평문 HTTP와 혼합 콘텐츠는 차단합니다.
+
+## 문제 해결
+
+- JDK 또는 SDK를 못 찾으면 `JAVA_HOME`과 `ANDROID_HOME`을 설정한 뒤 새 PowerShell에서 다시 실행합니다. Android Studio의 번들 JBR도 사용할 수 있습니다.
+- `adb devices -l`에 기기가 없으면 USB 연결 모드를 파일 전송으로 바꾸고, USB 디버깅 승인 창을 확인한 뒤 데이터 전송을 지원하는 케이블로 다시 연결합니다.
+- 웹 뷰어 코드를 바꿨는데 앱에 반영되지 않으면 `scripts/build.ps1`을 다시 실행합니다. 이 스크립트가 `viewer-web`을 빌드해 APK 자산을 갱신합니다.
+- SMB 연결이 실패하면 서버 주소와 공유 이름을 별도 칸에 입력했는지, 포트 445 접근이 가능한지, LAN 또는 VPN이 연결됐는지 먼저 확인합니다. 공용 인터넷에 445 포트를 직접 노출하지 않습니다.
+- Android Studio와 명령줄의 SDK가 다르면 `ANDROID_HOME`을 Studio의 SDK 경로와 일치시킵니다.
 
 ## 출시 전에 사용자 결정이 필요한 항목
 

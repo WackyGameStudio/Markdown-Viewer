@@ -1,15 +1,53 @@
+# Android Studio / IntelliJ
+.idea/
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+/captures/
+
+# Gradle / Kotlin
+.gradle/
+.kotlin/
+**/build/
+
+# Machine-local Android configuration
 local.properties
+
+# Native build intermediates
+.externalNativeBuild/
+.cxx/
+
+# Packaged artifacts (normal outputs are already under build/)
+*.apk
+*.ap_
+*.aab
+*.aar
+*.dex
+
+# Signing material and local secrets
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+secrets.properties
+.env
+.env.*
+!.env.example
+
+# Embedded viewer dependencies and temporary output
+viewer-web/node_modules/
+viewer-web/dist/
+viewer-web/coverage/
+viewer-web/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*~
+
+# app/src/main/assets/viewer is intentionally committed because it is
+# the offline WebView bundle packaged into the APK.
