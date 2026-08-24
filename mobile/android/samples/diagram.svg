@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360" role="img" aria-labelledby="title description">
+  <title id="title">Markdown Viewer 적응형 레이아웃</title>
+  <desc id="description">스마트폰 단일 화면과 태블릿 삼분할 화면 비교</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#536dfe"/>
+      <stop offset="1" stop-color="#7c4dff"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="360" rx="28" fill="#12131a"/>
+  <text x="48" y="54" fill="#f2f0ff" font-family="sans-serif" font-size="26" font-weight="700">창 크기에 반응하는 UI</text>
+  <g transform="translate(58 88)">
+    <rect width="170" height="232" rx="22" fill="url(#background)"/>
+    <rect x="12" y="18" width="146" height="28" rx="8" fill="#ffffff" opacity=".24"/>
+    <rect x="12" y="58" width="146" height="156" rx="10" fill="#ffffff" opacity=".92"/>
+    <text x="85" y="230" text-anchor="middle" fill="#d8d6e8" font-family="sans-serif" font-size="15">스마트폰 · 1화면</text>
+  </g>
+  <g transform="translate(302 88)">
+    <rect width="600" height="232" rx="22" fill="url(#background)"/>
+    <rect x="14" y="18" width="572" height="28" rx="8" fill="#ffffff" opacity=".24"/>
+    <rect x="14" y="58" width="145" height="156" rx="10" fill="#ffffff" opacity=".72"/>
+    <rect x="171" y="58" width="260" height="156" rx="10" fill="#ffffff" opacity=".94"/>
+    <rect x="443" y="58" width="143" height="156" rx="10" fill="#ffffff" opacity=".72"/>
+    <text x="300" y="230" text-anchor="middle" fill="#d8d6e8" font-family="sans-serif" font-size="15">태블릿 · 탐색기 + 문서 + 목차</text>
+  </g>
+</svg>
